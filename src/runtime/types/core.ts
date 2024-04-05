@@ -17,4 +17,4 @@ export interface PrecognitiveError extends Error {
   response: PrecognitiveErrorResponse
 }
 
-export type ErrorParser = (error: Error) => ValidationErrors | undefined
+export type PrecognitiveErrorParser = (error: Error) => ValidationErrors | undefined

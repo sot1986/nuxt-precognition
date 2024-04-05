@@ -1,5 +1,7 @@
 export default defineNuxtConfig({
   modules: ['../src/module'],
-  myModule: {},
+  nuxtPrecognition: {
+
+  },
   devtools: { enabled: true },
 })

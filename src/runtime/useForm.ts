@@ -1,17 +1,25 @@
+import { debounce } from 'lodash-es'
 import type { Form, UseFormOptions } from './types/form'
-import { getAllNestedKeys, makeValidator, resolveDynamicObject, resolveDynamicValue } from './core'
+import { getAllNestedKeys, resolveDynamicObject } from './core'
+import { makeValidator } from './validator'
 import type { NestedKeyOf } from './types/utils'
+import type { ValidationErrors } from './types/core'
+import { reactive, useNuxtApp, useRuntimeConfig } from '#imports'
 
 export function useForm<TData extends object, TResp>(
   init: TData | (() => TData),
   cb: (form: TData, precognitiveHeaders: Headers) => Promise<TResp>,
-  options?: UseFormOptions,
-) {
+  options?: UseFormOptions<TData>,
+): Form<TData, TResp> {
   const keys: (keyof TData)[] = Object.keys(resolveDynamicObject(init)) as (keyof TData)[]
 
   function getInitialData(): TData {
     return structuredClone(resolveDynamicObject(init))
   }
+
+  const { $nuxtPrecognition } = useNuxtApp()
+
+  const validator = makeValidator(cb, options)
 
   const form = {
     ...getInitialData(),
@@ -24,8 +32,6 @@ export function useForm<TData extends object, TResp>(
     },
     processing: false,
     validating: false,
-    validationTimeout: options?.validationTimeout ?? 500,
-    enablePrecognitiveValidation: options?.enablePrecognitiveValidation ?? false,
     disabled: () => form.processing || form.validating,
     setData(data) {
       Object.assign(form, data)
@@ -47,11 +53,9 @@ export function useForm<TData extends object, TResp>(
       deleteValidatedKeys()
     },
     async submit(o) {
-      if (form.disabled())
+      if (form.processing)
         return Promise.reject(new Error('Form is currently disabled.'))
       try {
-        // await validateForm()
-
         const onBefore = o?.onBefore ? await o.onBefore(form.data()) : true
 
         if (!onBefore)
@@ -68,6 +72,12 @@ export function useForm<TData extends object, TResp>(
       }
       catch (error) {
         const e = error instanceof Error ? error : new Error('Invalid form')
+
+        $nuxtPrecognition.parsers.errorParsers.forEach((parser) => {
+          const errors = parser(e)
+          if (errors)
+            assignFormErrors(errors)
+        })
 
         if (o?.onError)
           await o?.onError(e, form.data())
@@ -121,7 +131,14 @@ export function useForm<TData extends object, TResp>(
         deleteValidatedKeys(key)
       })
     },
-  } as Form<TData, TResp>
+    setErrors: assignFormErrors,
+  } as TData & Form<TData, TResp>
+
+  function assignFormErrors(errors: ValidationErrors) {
+    form.errors.clear()
+    for (const [key, value] of Object.entries(errors))
+      form.errors.set(key, Array.isArray(value) ? (value.at(0) ?? 'Validation error') : value)
+  }
 
   function addValidatedKeys(...keys: NestedKeyOf<TData>[]) {
     keys.forEach((key) => {
@@ -143,11 +160,14 @@ export function useForm<TData extends object, TResp>(
     })
   }
 
-  const validator = makeValidator(form, options)
-
   function validate(...keys: NestedKeyOf<TData>[]) {
     if (form.validating)
       return
-    validator(...keys)
+
+    form.validating = true
+
+    validator(form, ...keys)
   }
+
+  return reactive(form) as Form<TData, TResp>
 }

@@ -1,8 +1,8 @@
+import type { ValidationErrors } from './core'
 import type { NestedKeyOf } from './utils'
 
 interface SubmitOptions<TData extends object, TResp> {
   headers?: Headers
-  validate?: boolean
   onError?: (error: Error, data: TData) => Promise<never> | never
   onBefore?: (data: TData) => Promise<boolean> | boolean
   onSuccess?: <T = TResp>(resp: T, data: TData) => Promise<TResp>
@@ -15,8 +15,6 @@ export interface Form<TData extends object, Tresp> {
   validatedKeys: NestedKeyOf<TData>[]
   processing: boolean
   validating: boolean
-  validationTimeout: Readonly<number>
-  enablePrecognitiveValidation: boolean
   disabled: () => boolean
   error: (key?: NestedKeyOf<TData>) => string | undefined
   validate: (...keys: NestedKeyOf<TData>[]) => void
@@ -27,10 +25,15 @@ export interface Form<TData extends object, Tresp> {
   touched: (...keys: (NestedKeyOf<TData>)[]) => boolean
   touch: (...key: (NestedKeyOf<TData>)[]) => void
   forgetErrors: (...keys: (NestedKeyOf<TData>)[]) => void
+  setErrors: (errors: ValidationErrors) => void
 }
 
-export interface UseFormOptions {
+export interface UseFormOptions<TData extends object> {
   validationHeaders?: Headers
   validationTimeout?: number
-  enablePrecognitiveValidation?: boolean
+  backendValidation?: boolean
+  validateFiles?: boolean
+  onBeforeValidation?: (data: TData) => boolean
+  onValidationError?: (error: Error, data: TData, keys: NestedKeyOf<TData>[]) => Promise<void> | void
+  onValidationSuccess?: (data: TData) => Promise<void> | void
 }

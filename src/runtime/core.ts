@@ -1,6 +1,6 @@
 import { debounce } from 'lodash-es'
-import { ZodError } from 'zod'
-import type { ErrorParser, PrecognitiveError, PrecognitiveErrorResponse, PrecognitiveValidationErrorStatus, ValidationErrors, ValidationErrorsData } from './types/core'
+import { useRuntimeConfig } from 'nuxt/app'
+import type { PrecognitiveError, PrecognitiveErrorParser, PrecognitiveErrorResponse, PrecognitiveValidationErrorStatus, ValidationErrors, ValidationErrorsData } from './types/core'
 import type { NestedKeyOf } from './types/utils'
 import type { Form, UseFormOptions } from './types/form'
 
@@ -25,7 +25,8 @@ function hasPrecognitiveValidationStatusCode(response: Response): response is Re
 }
 
 function hasPrecognitiveErrorHeaders(response: Response): response is Response & { headers: Headers } {
-  return response.headers.get('precognition') === 'true' && response.headers.get('precognition-success') === 'false'
+  const { isPrecognitiveHeader, isSuccessfulHeader } = useRuntimeConfig().public.nuxtPrecognition
+  return response.headers.get(isPrecognitiveHeader) === 'true' && response.headers.get(isSuccessfulHeader) === 'false'
 }
 
 function hasValidationErrorsData(response: Response): response is Response & { data: ValidationErrorsData } {
@@ -56,67 +57,13 @@ export function resolveDynamicValue<T extends string | number>(value: T | (() =>
   return typeof value === 'function' ? value() : value
 }
 
-function requestPrecognitiveHeaders(headers?: HeadersInit, keys?: string[]) {
+export function requestPrecognitiveHeaders(headers?: HeadersInit, keys?: string[]) {
+  const { isPrecognitiveHeader, validateOnlyHeader, validatingKeysSeparator } = useRuntimeConfig().public.nuxtPrecognition
   const h = new Headers(headers)
-  h.set('Precognition', 'true')
+  h.set(isPrecognitiveHeader, 'true')
   if (keys?.length)
-    h.set('Precognition-Validate-Only', keys.join(','))
+    h.set(validateOnlyHeader, keys.join(validatingKeysSeparator))
   return h
-}
-
-export function makeValidator<TData extends object, TResp>(
-  form: Form<TData, TResp>,
-  options?: UseFormOptions | (() => UseFormOptions),
-) {
-  const errorParsers: ErrorParser[] = [
-    (error) => {
-      if (isPrecognitiveResponseError(error))
-        return error.response.data.errors
-    },
-    (error) => {
-      if (!(error instanceof ZodError))
-        return
-      const errors: ValidationErrors = {}
-      for (const issue of error.issues) {
-        const path = issue.path.join('.')
-        errors[path] = issue.message
-      }
-      return errors
-    },
-  ]
-
-  async function validate(...keys: NestedKeyOf<TData>[]) {
-    try {
-      form.validating = true
-      const validationHeaders = typeof options === 'function' ? options().validationHeaders : options?.validationHeaders
-      const headers = requestPrecognitiveHeaders(validationHeaders, keys)
-      await form.submit({ headers, validate: true })
-      form.forgetErrors()
-    }
-    catch (error) {
-      if (!(error instanceof Error))
-        throw error
-
-      errorParsers.forEach((parser) => {
-        const errors = parser(error)
-        if (errors)
-          assignFormErrors(errors)
-      })
-    }
-    finally {
-      form.validating = false
-      form.touch(...keys)
-    }
-  }
-
-  function assignFormErrors(errors: ValidationErrors) {
-    form.errors.clear()
-    for (const [key, value] of Object.entries(errors))
-      form.errors.set(key, Array.isArray(value) ? (value.at(0) ?? 'Validation error') : value)
-  }
-
-  const validator = debounce(validate, form.validationTimeout, { leading: true, trailing: false })
-  return validator
 }
 
 export function getAllNestedKeys<
@@ -138,4 +85,40 @@ export function getAllNestedKeys<
   })
 
   return keys as TPrefix extends undefined ? NestedKeyOf<TData>[] : string[]
+}
+
+/**
+ * Determine if the value is a file.
+ */
+export function isFile(value: unknown): value is Blob | File | FileList {
+  if (value instanceof Blob)
+    return true
+
+  if (import.meta.server)
+    return false
+
+  if (typeof File !== 'undefined' && value instanceof File)
+    return true
+
+  if (typeof FileList !== 'undefined' && value instanceof FileList)
+    return true
+
+  return false
+}
+
+export function withoutFiles<TData extends object>(data: TData): TData {
+  const copy = { } as TData
+  Object.keys(data).forEach((key) => {
+    const value = data[key as keyof TData]
+    if (isFile(value)) {
+      copy[key as keyof TData] = null as unknown as TData[keyof TData]
+      return
+    }
+
+    if (typeof value === 'object' && value !== null)
+      copy[key as keyof TData] = withoutFiles(value)
+    else
+      copy[key as keyof TData] = value
+  })
+  return copy
 }
