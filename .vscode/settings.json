@@ -39,7 +39,6 @@
     "jsonc",
     "yaml",
     "toml",
-    "gql",
-    "graphql"
+    "astro"
   ]
 }
