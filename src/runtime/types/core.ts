@@ -1,3 +1,5 @@
+import type { FetchResponse, IFetchError } from 'ofetch'
+
 export type ValidationErrors = Record<string, string | string[]>
 
 export type PrecognitiveValidationErrorStatus = 422
@@ -7,14 +9,14 @@ export interface ValidationErrorsData {
   errors: ValidationErrors
 }
 
-export interface PrecognitiveErrorResponse extends Response {
+export interface PrecognitiveErrorResponse extends FetchResponse<unknown> {
   headers: Headers
   status: PrecognitiveValidationErrorStatus
-  data: ValidationErrorsData
 }
 
-export interface PrecognitiveError extends Error {
+export interface PrecognitiveError extends IFetchError {
   response: PrecognitiveErrorResponse
+  data: { data: ValidationErrorsData }
 }
 
-export type PrecognitiveErrorParser = (error: Error) => ValidationErrors | undefined
+export type PrecognitiveErrorParser = (error: Error) => ValidationErrorsData | undefined | null

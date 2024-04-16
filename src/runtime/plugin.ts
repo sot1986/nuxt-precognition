@@ -1,21 +1,23 @@
-import { isPrecognitiveResponseError } from './core'
 import type { PrecognitiveErrorParser } from './types/core'
-import { defineNuxtPlugin } from '#app'
+import { isPrecognitiveResponseError } from './core'
+import { defineNuxtPlugin, ref, useRuntimeConfig } from '#imports'
 
 export default defineNuxtPlugin((_nuxtApp) => {
-  const errorParsers: PrecognitiveErrorParser[] = [
-    (error) => {
-      if (isPrecognitiveResponseError(error))
-        return error.response.data.errors
-    },
-  ]
+  const errorParsers = ref<PrecognitiveErrorParser[]>([])
+
   function addErrorParser(parser: PrecognitiveErrorParser) {
-    errorParsers.push(parser)
+    errorParsers.value.push(parser)
   }
+
+  const config = useRuntimeConfig().public.nuxtPrecognition
+
+  addErrorParser(error =>
+    isPrecognitiveResponseError(error, config) ? error.data.data : null,
+  )
 
   return {
     provide: {
-      nuxtPrecognition: {
+      precognition: {
         parsers: {
           errorParsers,
           addErrorParser,

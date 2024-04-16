@@ -1,43 +1,46 @@
-import { debounce } from 'lodash-es'
+import { cloneDeep, debounce } from 'lodash-es'
 import type { Form, UseFormOptions } from './types/form'
 import { getAllNestedKeys, resolveDynamicObject } from './core'
 import { makeValidator } from './validator'
 import type { NestedKeyOf } from './types/utils'
-import type { ValidationErrors } from './types/core'
-import { reactive, useNuxtApp, useRuntimeConfig } from '#imports'
+import type { ValidationErrorsData } from './types/core'
+import { reactive, toRaw, useNuxtApp } from '#imports'
 
 export function useForm<TData extends object, TResp>(
   init: TData | (() => TData),
   cb: (form: TData, precognitiveHeaders: Headers) => Promise<TResp>,
   options?: UseFormOptions<TData>,
-): Form<TData, TResp> {
+): TData & Form<TData, TResp> {
   const keys: (keyof TData)[] = Object.keys(resolveDynamicObject(init)) as (keyof TData)[]
 
   function getInitialData(): TData {
-    return structuredClone(resolveDynamicObject(init))
+    return cloneDeep(toRaw(resolveDynamicObject(init)))
   }
 
-  const { $nuxtPrecognition } = useNuxtApp()
+  const { $precognition } = useNuxtApp()
 
   const validator = makeValidator(cb, options)
 
-  const form = {
+  const form = reactive({
     ...getInitialData(),
-    data() {
-      const data = {} as TData
-      keys.forEach((key) => {
-        data[key] = form[key as keyof typeof form] as TData[keyof TData]
+    data: () => {
+      const data = cloneDeep(toRaw(form))
+      Object.keys(data).forEach((key) => {
+        if (keys.includes(key as keyof TData))
+          return
+        delete data[key as keyof typeof data]
       })
       return data
     },
     processing: false,
     validating: false,
     disabled: () => form.processing || form.validating,
-    setData(data) {
+    setData: (data) => {
       Object.assign(form, data)
     },
     validatedKeys: [],
     errors: new Map<string, string>(),
+    errorMessage: undefined,
     error(key) {
       if (key)
         return form.errors.get(key)
@@ -46,41 +49,48 @@ export function useForm<TData extends object, TResp>(
         return form.errors.get(firstKey)
       return undefined
     },
-    validate,
+    validate(...keys: NestedKeyOf<TData>[]) {
+      if (form.validating)
+        return
+      form.validating = true
+      validator(form, ...keys)
+    },
     reset() {
       Object.assign(this, getInitialData())
       form.errors.clear()
-      deleteValidatedKeys()
+      form.validatedKeys = []
     },
     async submit(o) {
       if (form.processing)
         return Promise.reject(new Error('Form is currently disabled.'))
+
+      const data = form.data()
       try {
-        const onBefore = o?.onBefore ? await o.onBefore(form.data()) : true
+        const onBefore = o?.onBefore ? await o.onBefore(data) : true
 
         if (!onBefore)
           return Promise.reject(new Error('Submission canceled'))
 
         form.processing = true
 
-        const resp = await cb(form.data(), o?.headers ?? new Headers())
+        const resp = await cb(data, o?.headers ?? new Headers())
 
         if (o?.onSuccess)
-          return o.onSuccess(resp, form.data())
+          return o.onSuccess(resp, data)
 
         return resp
       }
       catch (error) {
         const e = error instanceof Error ? error : new Error('Invalid form')
 
-        $nuxtPrecognition.parsers.errorParsers.forEach((parser) => {
-          const errors = parser(e)
-          if (errors)
-            assignFormErrors(errors)
+        $precognition.parsers.errorParsers.value.forEach((parser) => {
+          const errorsData = parser(e)
+          if (errorsData)
+            form.setErrors(errorsData)
         })
 
         if (o?.onError)
-          await o?.onError(e, form.data())
+          await o?.onError(e, data)
 
         return Promise.reject(e)
       }
@@ -89,22 +99,16 @@ export function useForm<TData extends object, TResp>(
       }
     },
     valid: (...keys) => {
-      if (!form.touched(...keys))
-        return false
-
       if (keys.length === 0)
         return form.errors.size === 0
 
-      return keys.reduce((acc, key) => acc && !form.errors.has(key), true)
+      return keys.reduce((acc, key) => acc && (form.validatedKeys.includes(key) && !form.errors.has(key)), true)
     },
     invalid: (...keys) => {
-      if (!form.touched(...keys))
-        return false
-
       if (keys.length === 0)
         return form.errors.size > 0
 
-      return keys.reduce((acc, key) => acc || form.errors.has(key), false)
+      return keys.reduce((acc, key) => acc || (form.validatedKeys.includes(key) && form.errors.has(key)), false)
     },
     touched: (...keys) => {
       if (keys.length === 0)
@@ -114,60 +118,39 @@ export function useForm<TData extends object, TResp>(
     },
     touch(...keys) {
       if (keys.length === 0) {
-        getAllNestedKeys(form.data()).forEach(key => addValidatedKeys(key))
+        getAllNestedKeys(form.data()).forEach(key => form.touch(key))
         return
       }
-
-      keys.forEach(key => addValidatedKeys(key))
+      keys.forEach((key) => {
+        if (!form.validatedKeys.includes(key))
+          form.validatedKeys.push(key)
+      })
     },
     forgetErrors(...keys) {
       if (keys.length === 0) {
         form.errors.clear()
-        deleteValidatedKeys()
+        form.errorMessage = undefined
+        form.validatedKeys = []
         return
       }
       keys.forEach((key) => {
         form.errors.delete(key)
-        deleteValidatedKeys(key)
+        const index = form.validatedKeys.indexOf(key)
+        if (index > -1)
+          form.validatedKeys.splice(index, 1)
       })
     },
-    setErrors: assignFormErrors,
-  } as TData & Form<TData, TResp>
+    setErrors(data: ValidationErrorsData) {
+      form.errors.clear()
+      form.errorMessage = data.error
 
-  function assignFormErrors(errors: ValidationErrors) {
-    form.errors.clear()
-    for (const [key, value] of Object.entries(errors))
-      form.errors.set(key, Array.isArray(value) ? (value.at(0) ?? 'Validation error') : value)
-  }
+      for (const [key, value] of Object.entries(data.errors)) {
+        if (form.errors.has(key))
+          continue
+        form.errors.set(key, Array.isArray(value) ? (value.at(0) ?? data.error) : value)
+      }
+    },
+  }) as TData & Form<TData, TResp>
 
-  function addValidatedKeys(...keys: NestedKeyOf<TData>[]) {
-    keys.forEach((key) => {
-      if (!form.errors.has(key))
-        form.validatedKeys.push(key)
-    })
-  }
-
-  function deleteValidatedKeys(...keys: NestedKeyOf<TData>[]) {
-    if (keys.length === 0) {
-      form.validatedKeys = []
-      return
-    }
-
-    keys.forEach((key) => {
-      const index = form.validatedKeys.indexOf(key)
-      if (index > -1)
-        form.validatedKeys.splice(index, 1)
-    })
-  }
-
-  function validate(...keys: NestedKeyOf<TData>[]) {
-    if (form.validating)
-      return
-
-    form.validating = true
-
-    validator(form, ...keys)
-  }
-
-  return reactive(form) as Form<TData, TResp>
+  return form
 }

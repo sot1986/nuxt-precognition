@@ -1,44 +1,43 @@
-import { debounce } from 'lodash-es'
-import { useRuntimeConfig } from 'nuxt/app'
-import type { PrecognitiveError, PrecognitiveErrorParser, PrecognitiveErrorResponse, PrecognitiveValidationErrorStatus, ValidationErrors, ValidationErrorsData } from './types/core'
+import { FetchError } from 'ofetch'
+import type { FetchResponse, IFetchError } from 'ofetch'
+import type { PrecognitiveError, PrecognitiveValidationErrorStatus, ValidationErrors, ValidationErrorsData } from './types/core'
 import type { NestedKeyOf } from './types/utils'
-import type { Form, UseFormOptions } from './types/form'
+import type { Config } from './types/config'
 
-export function isPrecognitiveResponseError(error: Error): error is PrecognitiveError {
-  return hasPrecognitiveResponse(error)
+export function isPrecognitiveResponseError(error: Error, config: Config): error is PrecognitiveError {
+  return isFetchError(error) && hasPrecognitiveResponse(error, config) && hasValidationErrorsData(error)
 }
 
-function hasPrecognitiveResponse(error: Error): error is Error & { response: PrecognitiveErrorResponse } {
-  return hasPrecognitiveReponse(error)
+function isFetchError(error: Error): error is IFetchError {
+  return error instanceof FetchError
 }
 
-function hasPrecognitiveReponse(error: Error): error is Error & { response: PrecognitiveErrorResponse } {
-  return hasResponse(error) && hasPrecognitiveValidationStatusCode(error.response) && hasPrecognitiveErrorHeaders(error.response) && hasValidationErrorsData(error.response)
+function hasPrecognitiveResponse(error: IFetchError, config: Config): error is PrecognitiveError {
+  return hasFetchErrorResponse(error) && hasPrecognitiveValidationStatusCode(error.response, config) && hasPrecognitiveErrorHeaders(error.response, config)
 }
 
-function hasResponse(error: Error): error is Error & { response: Response } {
-  return 'response' in error && error.response instanceof Response
+function hasFetchErrorResponse(error: IFetchError): error is IFetchError & { response: FetchResponse<unknown> } {
+  return 'response' in error && !!error.response
 }
 
-function hasPrecognitiveValidationStatusCode(response: Response): response is Response & { status: PrecognitiveValidationErrorStatus } {
-  return response.status === 422
+function hasPrecognitiveValidationStatusCode(response: FetchResponse<unknown>, config: Config): response is FetchResponse<unknown> & { status: PrecognitiveValidationErrorStatus } {
+  return response.status === config.errorStatusCode
 }
 
-function hasPrecognitiveErrorHeaders(response: Response): response is Response & { headers: Headers } {
-  const { isPrecognitiveHeader, isSuccessfulHeader } = useRuntimeConfig().public.nuxtPrecognition
-  return response.headers.get(isPrecognitiveHeader) === 'true' && response.headers.get(isSuccessfulHeader) === 'false'
+function hasPrecognitiveErrorHeaders(response: FetchResponse<unknown>, config: Config): response is FetchResponse<unknown> & { headers: Headers } {
+  return response.headers.get(config.precognitiveHeader) === 'true' && response.headers.get(config.successfulHeader) === 'false'
 }
 
-function hasValidationErrorsData(response: Response): response is Response & { data: ValidationErrorsData } {
-  return hasResponseData(response) && hasErrorMessage(response.data) && hasValidationErrors(response.data)
+function hasValidationErrorsData(error: IFetchError): error is IFetchError<{ data: ValidationErrorsData }> {
+  return hasErrorData(error) && hasErrorMessage(error.data.data) && hasValidationErrors(error.data.data)
 }
 
-function hasResponseData(response: Response): response is Response & { data: NonNullable<object> } {
-  return 'data' in response && typeof response.data === 'object' && response.data !== null
+function hasErrorData(error: IFetchError): error is IFetchError & { data: { data: Partial<ValidationErrorsData> } } {
+  return typeof error.data.data === 'object' && !!error.data.data
 }
 
 function hasErrorMessage(data: Partial<ValidationErrorsData>): data is { error: string } {
-  return 'error' in data && typeof data.error === 'string'
+  return typeof data.error === 'string'
 }
 
 function hasValidationErrors(data: Partial<ValidationErrorsData>): data is Partial<ValidationErrorsData> & { errors: ValidationErrors } {
@@ -53,16 +52,15 @@ export function resolveDynamicObject<T extends object>(object: T | (() => T)): T
   return typeof object === 'function' ? object() : object
 }
 
-export function resolveDynamicValue<T extends string | number>(value: T | (() => T)): T {
-  return typeof value === 'function' ? value() : value
+export function hasPrecognitiveRequestsHeader(headers: HeadersInit, config: Config): boolean {
+  return new Headers(headers).get(config.precognitiveHeader) === 'true'
 }
 
-export function requestPrecognitiveHeaders(headers?: HeadersInit, keys?: string[]) {
-  const { isPrecognitiveHeader, validateOnlyHeader, validatingKeysSeparator } = useRuntimeConfig().public.nuxtPrecognition
+export function requestPrecognitiveHeaders(config: Config, headers?: HeadersInit, keys?: string[]): Headers {
   const h = new Headers(headers)
-  h.set(isPrecognitiveHeader, 'true')
+  h.set(config.precognitiveHeader, 'true')
   if (keys?.length)
-    h.set(validateOnlyHeader, keys.join(validatingKeysSeparator))
+    h.set(config.validateOnlyHeader, keys.join(config.validatingKeysSeparator))
   return h
 }
 
@@ -104,21 +102,4 @@ export function isFile(value: unknown): value is Blob | File | FileList {
     return true
 
   return false
-}
-
-export function withoutFiles<TData extends object>(data: TData): TData {
-  const copy = { } as TData
-  Object.keys(data).forEach((key) => {
-    const value = data[key as keyof TData]
-    if (isFile(value)) {
-      copy[key as keyof TData] = null as unknown as TData[keyof TData]
-      return
-    }
-
-    if (typeof value === 'object' && value !== null)
-      copy[key as keyof TData] = withoutFiles(value)
-    else
-      copy[key as keyof TData] = value
-  })
-  return copy
 }

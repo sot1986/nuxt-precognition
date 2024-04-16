@@ -1,4 +1,4 @@
-import type { ValidationErrors } from './core'
+import type { ValidationErrorsData } from './core'
 import type { NestedKeyOf } from './utils'
 
 interface SubmitOptions<TData extends object, TResp> {
@@ -12,6 +12,7 @@ export interface Form<TData extends object, Tresp> {
   data: () => TData
   setData: (data: TData) => void
   errors: Map<string, string>
+  errorMessage: string | undefined
   validatedKeys: NestedKeyOf<TData>[]
   processing: boolean
   validating: boolean
@@ -25,7 +26,7 @@ export interface Form<TData extends object, Tresp> {
   touched: (...keys: (NestedKeyOf<TData>)[]) => boolean
   touch: (...key: (NestedKeyOf<TData>)[]) => void
   forgetErrors: (...keys: (NestedKeyOf<TData>)[]) => void
-  setErrors: (errors: ValidationErrors) => void
+  setErrors: (errors: ValidationErrorsData) => void
 }
 
 export interface UseFormOptions<TData extends object> {
@@ -34,6 +35,7 @@ export interface UseFormOptions<TData extends object> {
   backendValidation?: boolean
   validateFiles?: boolean
   onBeforeValidation?: (data: TData) => boolean
+  clientValidation?: (data: TData) => Promise<void> | void
   onValidationError?: (error: Error, data: TData, keys: NestedKeyOf<TData>[]) => Promise<void> | void
   onValidationSuccess?: (data: TData) => Promise<void> | void
 }

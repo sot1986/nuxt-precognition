@@ -1,38 +1,29 @@
-import { addImports, addPlugin, createResolver, defineNuxtModule } from '@nuxt/kit'
+import { addImports, addPlugin, addServerImports, addServerPlugin, createResolver, defineNuxtModule } from '@nuxt/kit'
 import defu from 'defu'
+import type { Config } from './runtime/types/config'
 
 // Module options TypeScript interface definition
-export interface ModuleOptions {
-  /** base validation timeout, @default 1500 ms */
-  validationTimeout: number
-  /** enable backend validation @default false */
-  backendValidation: boolean
-  /** precognitive request flag header, @default 'Precognition' */
-  isPrecognitiveHeader: string
-  /** precognitive validate only header, @default 'Precognition-Validate-Only' */
-  validateOnlyHeader: string
-  /** precognitive validate only keys separator, @default ',' */
-  validatingKeysSeparator: string
-  /** precognitive response successful flag header, @default 'Precognition-success' */
-  isSuccessfulHeader: string
-  /** precognitive files validation, @default false */
-  validateFiles: boolean
-}
+export interface ModuleOptions extends Config {}
 
 export default defineNuxtModule<ModuleOptions>({
   meta: {
     name: 'nuxt-precognition',
     configKey: 'nuxtPrecognition',
+    compatibility: {
+      nuxt: '^3.9.0',
+    },
   },
   // Default configuration options of the Nuxt module
   defaults: {
     validationTimeout: 1500,
     backendValidation: false,
-    isPrecognitiveHeader: 'Precognition',
+    precognitiveHeader: 'Precognition',
     validateOnlyHeader: 'Precognition-Validate-Only',
     validatingKeysSeparator: ',',
-    isSuccessfulHeader: 'Precognition-success',
+    successfulHeader: 'Precognition-success',
     validateFiles: false,
+    errorStatusCode: 422,
+    successValidationStatusCode: 204,
   },
   setup(options, nuxt) {
     nuxt.options.runtimeConfig.public.nuxtPrecognition = defu(
@@ -40,15 +31,19 @@ export default defineNuxtModule<ModuleOptions>({
       {
         validationTimeout: options.validationTimeout,
         backendValidation: options.backendValidation,
-        isPrecognitiveHeader: options.isPrecognitiveHeader,
+        precognitiveHeader: options.precognitiveHeader,
         validateOnlyHeader: options.validateOnlyHeader,
         validatingKeysSeparator: options.validatingKeysSeparator,
-        isSuccessfulHeader: options.isSuccessfulHeader,
+        successfulHeader: options.successfulHeader,
         validateFiles: options.validateFiles,
+        errorStatusCode: options.errorStatusCode,
+        successValidationStatusCode: options.successValidationStatusCode,
       },
     )
 
     const resolver = createResolver(import.meta.url)
+
+    nuxt.options.nitro.plugins = nuxt.options.nitro.plugins || []
 
     // Do not add the extension since the `.ts` will be transpiled to `.mjs` after `npm run prepack`
     addPlugin(resolver.resolve('./runtime/plugin'))
@@ -58,5 +53,16 @@ export default defineNuxtModule<ModuleOptions>({
       from: resolver.resolve('./runtime/useForm'),
       as: 'useForm',
     })
+
+    addServerImports([
+      {
+        from: resolver.resolve('./runtime/definePrecognitiveEventHandler'),
+        name: 'definePrecognitiveEventHandler',
+      },
+      {
+        from: resolver.resolve('./runtime/createPrecognitiveEventHandler'),
+        name: 'createPrecognitiveEventHandler',
+      },
+    ])
   },
 })
