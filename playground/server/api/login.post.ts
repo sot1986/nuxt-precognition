@@ -1,19 +1,22 @@
 import { z } from 'zod'
-import { defineZodPrecognitiveEventHandler } from '../utils/precognition'
+import { defineZodPrecognitiveEventHandler, readBody } from '#imports'
 
-const LoginSchema = z.object({
-  email: z.string().email().refine(value => value !== 'sot@email.it'),
+const loginSchema = z.object({
+  email: z.string().email(),
   password: z.string(),
 })
 
 export default defineZodPrecognitiveEventHandler({
-  onRequest: async (event) => {
-    const data = await readBody(event)
-    LoginSchema.parse(data)
+  async onRequest(event) {
+    const body = await readBody(event)
+    loginSchema.parse(body)
   },
   handler: () => {
     return {
-      data: 'Hello, World!',
+      status: 200,
+      body: {
+        message: 'Success',
+      },
     }
   },
 })

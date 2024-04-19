@@ -1,8 +1,9 @@
 import { debounce } from 'lodash-es'
 import type { DebouncedFuncLeading } from 'lodash'
 import type { NestedKeyOf } from './types/utils'
+import type { PrecognitiveErrorParser } from './types/core'
 import type { Form, UseFormOptions } from './types/form'
-import { isFile, requestPrecognitiveHeaders } from './core'
+import { isFile, requestPrecognitiveHeaders, resolvePrecognitiveErrorData, makeLaravelErrorParser, makeNuxtErrorParser } from './core'
 import { useNuxtApp, useRuntimeConfig } from '#imports'
 
 export function makeValidator<TData extends object, TResp>(
@@ -11,6 +12,11 @@ export function makeValidator<TData extends object, TResp>(
 ): DebouncedFuncLeading<(form: Form<TData, TResp>, ...keys: NestedKeyOf<TData>[]) => Promise<void>> {
   const { $precognition } = useNuxtApp()
   const config = useRuntimeConfig().public.nuxtPrecognition
+  const baseParsers: PrecognitiveErrorParser[] = []
+  if (!config.disableLaravelErrorParser)
+    baseParsers.push(makeLaravelErrorParser(config))
+  if (!config.disableNuxtErrorParser)
+    baseParsers.push(makeNuxtErrorParser(config))
 
   async function validate(form: Form<TData, TResp>, ...keys: NestedKeyOf<TData>[]) {
     const headers = requestPrecognitiveHeaders(config, options?.validationHeaders, keys)
@@ -39,11 +45,13 @@ export function makeValidator<TData extends object, TResp>(
       if (!(error instanceof Error))
         throw error
 
-      $precognition.parsers.errorParsers.value.forEach((parser) => {
-        const errorData = parser(error)
-        if (errorData)
-          form.setErrors(errorData)
-      })
+      const errorData = resolvePrecognitiveErrorData(error, [
+        ...baseParsers,
+        ...$precognition.parsers.errorParsers,
+      ])
+
+      if (errorData)
+        form.setErrors(errorData)
 
       const onError = options?.onValidationError ?? (() => Promise.resolve())
       await onError(error, data, keys)

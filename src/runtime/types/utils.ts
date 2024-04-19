@@ -13,7 +13,7 @@ T extends unknown[]
   : keyof T & string
 
 interface HasConstructor {
-  new (...args: any[]): any
+  new (...args: unknown[]): unknown
 }
 
 export type NestedKeyOf<T> = T extends Record<infer Key, unknown>
@@ -22,15 +22,14 @@ export type NestedKeyOf<T> = T extends Record<infer Key, unknown>
     : T extends CallableFunction
       ? never
       : Key extends string | number
-        ? ObjectKeys<T> | (T[Key] extends object
-          ? `${ObjectKeys<Pick<T, Key>>}.${NestedKeyOf<T[Key]>}`
-          : T extends unknown[]
-            ? T extends [unknown, ...unknown[]]
-              ? never
-              : T[number] extends object
-                ? `${number}.${NestedKeyOf<T[number]>}`
-                : never
-            : never
-        )
+        ? (ObjectKeys<T> | (T[Key] extends object
+            ? `${ObjectKeys<Pick<T, Key>>}.${NestedKeyOf<T[Key]>}`
+            : T extends unknown[]
+              ? T extends [unknown, ...unknown[]]
+                ? never
+                : T[number] extends object
+                  ? `${number}.${NestedKeyOf<T[number]>}`
+                  : never
+              : never))
         : never
   : never

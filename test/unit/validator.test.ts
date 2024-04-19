@@ -68,6 +68,7 @@ describe('test validator functions', () => {
       },
     })
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await validator({ data: () => ({}), touch: () => {}, forgetErrors: () => {} } as any)
 
     expect(hook).toEqual(['onBeforeValidation', 'clientValidation', 'cb', 'onValidationSuccess'])
@@ -97,6 +98,7 @@ describe('test validator functions', () => {
       },
     })
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await validator({ data: () => ({}), touch: () => {}, forgetErrors: () => {} } as any)
 
     expect(hook).toEqual(['onBeforeValidation', 'clientValidation', 'cb', 'onValidationError'])

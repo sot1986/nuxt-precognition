@@ -1,46 +1,64 @@
-import { FetchError } from 'ofetch'
-import type { FetchResponse, IFetchError } from 'ofetch'
-import type { PrecognitiveError, PrecognitiveValidationErrorStatus, ValidationErrors, ValidationErrorsData } from './types/core'
+import type { NuxtPrecognitiveError, PrecognitiveValidationErrorStatus, ValidationErrors, ValidationErrorsData, NuxtPrecognitiveErrorResponse, PrecognitiveValidationSuccessStatus, PrecognitveSuccessResponse, LaravelPrecognitiveErrorResponse, NuxtValidationErrorsData, PrecognitiveErrorParser } from './types/core'
 import type { NestedKeyOf } from './types/utils'
 import type { Config } from './types/config'
 
-export function isPrecognitiveResponseError(error: Error, config: Config): error is PrecognitiveError {
-  return isFetchError(error) && hasPrecognitiveResponse(error, config) && hasValidationErrorsData(error)
+export function isPrecognitiveSuccessResponse(response: Response, config: Config): response is PrecognitveSuccessResponse {
+  return hasPrecognitiveSuccessStatusCode(response, config) && hasPrecognitiveHeader(response, config) && hasPrecognitiveSuccessHeaders(response, config)
 }
 
-function isFetchError(error: Error): error is IFetchError {
-  return error instanceof FetchError
+function hasPrecognitiveSuccessStatusCode(response: Response, config: Config): response is Response & { status: PrecognitiveValidationSuccessStatus } {
+  return response.status === config.successValidationStatusCode
 }
 
-function hasPrecognitiveResponse(error: IFetchError, config: Config): error is PrecognitiveError {
-  return hasFetchErrorResponse(error) && hasPrecognitiveValidationStatusCode(error.response, config) && hasPrecognitiveErrorHeaders(error.response, config)
+function hasPrecognitiveSuccessHeaders(response: Response, config: Config): response is Response & { headers: Headers } {
+  return response.headers.get(config.successfulHeader) === 'true'
 }
 
-function hasFetchErrorResponse(error: IFetchError): error is IFetchError & { response: FetchResponse<unknown> } {
-  return 'response' in error && !!error.response
+export function isNuxtPrecognitiveError(error: Error, config: Config): error is NuxtPrecognitiveError {
+  return hasNuxtPrecognitiveResponse(error, config)
 }
 
-function hasPrecognitiveValidationStatusCode(response: FetchResponse<unknown>, config: Config): response is FetchResponse<unknown> & { status: PrecognitiveValidationErrorStatus } {
+function hasNuxtPrecognitiveResponse(error: Error, config: Config): error is Error & { response: NuxtPrecognitiveErrorResponse } {
+  return hasResponse(error) && hasPrecognitiveValidationStatusCode(error.response, config) && hasPrecognitiveHeader(error.response, config) && hasNuxtValidationErrorsData(error.response)
+}
+
+function hasResponse(error: Error): error is Error & { response: Response } {
+  return 'response' in error && error.response instanceof Response
+}
+
+function hasPrecognitiveValidationStatusCode(response: Response, config: Config): response is Response & { status: PrecognitiveValidationErrorStatus } {
   return response.status === config.errorStatusCode
 }
 
-function hasPrecognitiveErrorHeaders(response: FetchResponse<unknown>, config: Config): response is FetchResponse<unknown> & { headers: Headers } {
-  return response.headers.get(config.precognitiveHeader) === 'true' && response.headers.get(config.successfulHeader) === 'false'
+function hasPrecognitiveHeader(response: Response, config: Config): response is Response & { headers: Headers } {
+  return response.headers.get(config.precognitiveHeader) === 'true'
 }
 
-function hasValidationErrorsData(error: IFetchError): error is IFetchError<{ data: ValidationErrorsData }> {
-  return hasErrorData(error) && hasErrorMessage(error.data.data) && hasValidationErrors(error.data.data)
+function hasNuxtValidationErrorsData(response: Response): response is Response & { _data: NuxtValidationErrorsData } {
+  return hasResponseData(response) && 'data' in response._data && typeof response._data.data === 'object' && !!response._data.data && hasErrorMessage(response._data.data) && hasValidationErrors(response._data.data)
 }
 
-function hasErrorData(error: IFetchError): error is IFetchError & { data: { data: Partial<ValidationErrorsData> } } {
-  return typeof error.data.data === 'object' && !!error.data.data
+function hasResponseData(response: Response): response is Response & { _data: object } {
+  return ('_data' in response) && typeof response._data === 'object' && !!response._data
 }
 
-function hasErrorMessage(data: Partial<ValidationErrorsData>): data is { error: string } {
-  return typeof data.error === 'string'
+export function isLaravelPrecognitiveError(error: Error, config: Config): error is Error & { response: LaravelPrecognitiveErrorResponse } {
+  return hasLaravelPrecognitiveResponse(error, config)
 }
 
-function hasValidationErrors(data: Partial<ValidationErrorsData>): data is Partial<ValidationErrorsData> & { errors: ValidationErrors } {
+function hasLaravelPrecognitiveResponse(error: Error, config: Config): error is Error & { response: LaravelPrecognitiveErrorResponse } {
+  return hasResponse(error) && hasPrecognitiveValidationStatusCode(error.response, config) && hasPrecognitiveHeader(error.response, config) && hasLaravelValidationErrorsData(error.response)
+}
+
+function hasLaravelValidationErrorsData(response: Response): response is Response & { _data: ValidationErrorsData } {
+  return hasResponseData(response) && hasErrorMessage(response._data) && hasValidationErrors(response._data)
+}
+
+function hasErrorMessage(data: object): data is { message: string } {
+  return 'message' in data && typeof data.message === 'string'
+}
+
+function hasValidationErrors(data: object): data is Partial<ValidationErrorsData> & { errors: ValidationErrors } {
   if (!('errors' in data) || typeof data.errors !== 'object' || !data.errors)
     return false
   const allObjectKeysAreStrings = Object.keys(data.errors).every(key => typeof key === 'string')
@@ -91,15 +109,19 @@ export function getAllNestedKeys<
 export function isFile(value: unknown): value is Blob | File | FileList {
   if (value instanceof Blob)
     return true
+  return import.meta.server
+    ? (value instanceof File || value instanceof FileList)
+    : false
+}
 
-  if (import.meta.server)
-    return false
+export function resolvePrecognitiveErrorData(error: Error, parsers: PrecognitiveErrorParser[]) {
+  return parsers.reduce<ValidationErrorsData | undefined | null>((errors, parser) => errors ?? parser(error), null)
+}
 
-  if (typeof File !== 'undefined' && value instanceof File)
-    return true
+export function makeNuxtErrorParser(config: Config): PrecognitiveErrorParser {
+  return error => isNuxtPrecognitiveError(error, config) ? error.response._data.data : null
+}
 
-  if (typeof FileList !== 'undefined' && value instanceof FileList)
-    return true
-
-  return false
+export function makeLaravelErrorParser(config: Config): PrecognitiveErrorParser {
+  return error => isLaravelPrecognitiveError(error, config) ? error.response._data : null
 }

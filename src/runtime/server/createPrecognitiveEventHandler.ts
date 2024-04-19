@@ -1,5 +1,5 @@
 import type { EventHandler, EventHandlerObject, EventHandlerRequest, _RequestMiddleware } from 'h3'
-import type { PrecognitiveErrorParser } from './types/core'
+import type { PrecognitiveErrorParser } from '../types/core'
 import { definePrecognitiveEventHandler } from './definePrecognitiveEventHandler'
 
 export function createPrecognitiveEventHandler(
@@ -12,8 +12,5 @@ export function createPrecognitiveEventHandler(
   return <
   TRequest extends EventHandlerRequest,
   TResponse,
-  >(
-    handler: EventHandlerObject<TRequest, TResponse>,
-    errorParsers: PrecognitiveErrorParser[] = [],
-  ) => definePrecognitiveEventHandler(handler, [...baseErrorParsers, ...errorParsers])
+  >(handler: EventHandlerObject<TRequest, TResponse>, errorParsers: PrecognitiveErrorParser[] = []) => definePrecognitiveEventHandler(handler, [...baseErrorParsers, ...errorParsers])
 }

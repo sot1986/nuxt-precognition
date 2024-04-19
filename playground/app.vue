@@ -11,13 +11,27 @@
         </h2>
         <ul class="mt-4 w-40">
           <li class="w-full hover:bg-gray-100">
-            <NuxtLink to="/" class="px-2 py-1">
+            <NuxtLink
+              to="/"
+              class="px-2 py-1"
+            >
               Home
             </NuxtLink>
           </li>
           <li class="w-full hover:bg-gray-100">
-            <NuxtLink to="/login" class="px-2 py-1">
+            <NuxtLink
+              to="/login"
+              class="px-2 py-1"
+            >
               Login
+            </NuxtLink>
+          </li>
+          <li class="w-full hover:bg-gray-100">
+            <NuxtLink
+              to="/laravel"
+              class="px-2 py-1 "
+            >
+              Laravel
             </NuxtLink>
           </li>
         </ul>

@@ -1,4 +1,4 @@
-import { cloneDeep, debounce } from 'lodash-es'
+import { cloneDeep } from 'lodash-es'
 import type { Form, UseFormOptions } from './types/form'
 import { getAllNestedKeys, resolveDynamicObject } from './core'
 import { makeValidator } from './validator'
@@ -28,6 +28,7 @@ export function useForm<TData extends object, TResp>(
       Object.keys(data).forEach((key) => {
         if (keys.includes(key as keyof TData))
           return
+        // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
         delete data[key as keyof typeof data]
       })
       return data
@@ -83,7 +84,7 @@ export function useForm<TData extends object, TResp>(
       catch (error) {
         const e = error instanceof Error ? error : new Error('Invalid form')
 
-        $precognition.parsers.errorParsers.value.forEach((parser) => {
+        $precognition.parsers.errorParsers.forEach((parser) => {
           const errorsData = parser(e)
           if (errorsData)
             form.setErrors(errorsData)
@@ -142,12 +143,12 @@ export function useForm<TData extends object, TResp>(
     },
     setErrors(data: ValidationErrorsData) {
       form.errors.clear()
-      form.errorMessage = data.error
+      form.errorMessage = data.message
 
       for (const [key, value] of Object.entries(data.errors)) {
         if (form.errors.has(key))
           continue
-        form.errors.set(key, Array.isArray(value) ? (value.at(0) ?? data.error) : value)
+        form.errors.set(key, Array.isArray(value) ? (value.at(0) ?? data.message) : value)
       }
     },
   }) as TData & Form<TData, TResp>

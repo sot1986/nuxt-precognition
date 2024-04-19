@@ -14,7 +14,7 @@ export const defineZodPrecognitiveEventHandler = createPrecognitiveEventHandler(
         errors[key] = [e.message]
       })
       const message = error.errors.at(0)?.message ?? 'Validation error'
-      return { errors, error: message }
+      return { errors, message }
     }
   },
 ])
