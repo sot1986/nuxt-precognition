@@ -4,7 +4,7 @@ import type { PrecognitiveErrorParser, ValidationErrorsData } from '../types/cor
 import { hasPrecognitiveRequestsHeader, makeLaravelErrorParser, resolvePrecognitiveErrorData } from '../core'
 import { useRuntimeConfig } from '#imports'
 
-export function definePrecognitiveEventHandler<
+function definePrecognitiveEventHandler<
 TRequest extends EventHandlerRequest,
 TResponse,
 >(
@@ -39,7 +39,7 @@ function onPrecognitiveRequestWrapper<T extends EventHandlerRequest>(
 ): _RequestMiddleware<T> {
   const config = useRuntimeConfig().public.nuxtPrecognition
   const baseParsers = [] as PrecognitiveErrorParser[]
-  if (!config.disableNuxtErrorParser)
+  if (!config.enableServerLaravelErrorParser)
     baseParsers.push(makeLaravelErrorParser(config))
 
   return async (event) => {
@@ -120,3 +120,18 @@ function onPrecognitiveHandler<TRequest extends EventHandlerRequest, TResponse>(
     return null as unknown as TResponse
   }
 }
+
+definePrecognitiveEventHandler.create = function (
+  errorParsers: PrecognitiveErrorParser[],
+): <TRequest extends EventHandlerRequest, TResponse>(
+    handler: EventHandlerObject<TRequest, TResponse>,
+    errorParsers?: PrecognitiveErrorParser[],
+  ) => EventHandler<TRequest, TResponse> {
+  const baseErrorParsers = [...errorParsers]
+  return <
+  TRequest extends EventHandlerRequest,
+  TResponse,
+  >(handler: EventHandlerObject<TRequest, TResponse>, errorParsers: PrecognitiveErrorParser[] = []) => definePrecognitiveEventHandler(handler, [...baseErrorParsers, ...errorParsers])
+}
+
+export { definePrecognitiveEventHandler }

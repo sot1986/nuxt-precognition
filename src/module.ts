@@ -24,8 +24,9 @@ export default defineNuxtModule<ModuleOptions>({
     validateFiles: false,
     errorStatusCode: 422,
     successValidationStatusCode: 204,
-    disableNuxtErrorParser: false,
-    disableLaravelErrorParser: false,
+    enableClientNuxtErrorParser: false,
+    enableClientLaravelErrorParser: false,
+    enableServerLaravelErrorParser: false,
   },
   setup(options, nuxt) {
     nuxt.options.runtimeConfig.public.nuxtPrecognition = defu(
@@ -40,8 +41,9 @@ export default defineNuxtModule<ModuleOptions>({
         validateFiles: options.validateFiles,
         errorStatusCode: options.errorStatusCode,
         successValidationStatusCode: options.successValidationStatusCode,
-        disableNuxtErrorParser: options.disableNuxtErrorParser,
-        disableLaravelErrorParser: options.disableLaravelErrorParser,
+        enableClientNuxtErrorParser: options.enableClientNuxtErrorParser,
+        enableClientLaravelErrorParser: options.enableClientLaravelErrorParser,
+        enableServerLaravelErrorParser: options.enableServerLaravelErrorParser,
       },
     )
 
@@ -62,10 +64,6 @@ export default defineNuxtModule<ModuleOptions>({
       {
         from: resolver.resolve('./runtime/server/definePrecognitiveEventHandler'),
         name: 'definePrecognitiveEventHandler',
-      },
-      {
-        from: resolver.resolve('./runtime/server/createPrecognitiveEventHandler'),
-        name: 'createPrecognitiveEventHandler',
       },
     ])
   },

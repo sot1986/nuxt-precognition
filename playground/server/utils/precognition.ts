@@ -1,7 +1,7 @@
 import { ZodError } from 'zod'
-import { createPrecognitiveEventHandler } from '#imports'
+import { definePrecognitiveEventHandler } from '#imports'
 
-export const defineZodPrecognitiveEventHandler = createPrecognitiveEventHandler([
+export const defineZodPrecognitiveEventHandler = definePrecognitiveEventHandler.create([
   (error) => {
     if (error instanceof ZodError) {
       const errors: Record<string, string[]> = {}

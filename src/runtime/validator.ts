@@ -12,10 +12,11 @@ export function makeValidator<TData extends object, TResp>(
 ): DebouncedFuncLeading<(form: Form<TData, TResp>, ...keys: NestedKeyOf<TData>[]) => Promise<void>> {
   const { $precognition } = useNuxtApp()
   const config = useRuntimeConfig().public.nuxtPrecognition
+
   const baseParsers: PrecognitiveErrorParser[] = []
-  if (!config.disableLaravelErrorParser)
+  if (config.enableClientLaravelErrorParser)
     baseParsers.push(makeLaravelErrorParser(config))
-  if (!config.disableNuxtErrorParser)
+  if (!config.enableClientNuxtErrorParser)
     baseParsers.push(makeNuxtErrorParser(config))
 
   async function validate(form: Form<TData, TResp>, ...keys: NestedKeyOf<TData>[]) {
@@ -23,29 +24,26 @@ export function makeValidator<TData extends object, TResp>(
     const data = form.data()
     try {
       const onBefore = (options?.onBeforeValidation ?? (() => true))(data)
-
       if (!onBefore)
         return
-
       const clientValidation = options?.clientValidation ?? (() => Promise.resolve())
       await clientValidation(data)
-
       if (options?.backendValidation ?? config.backendValidation) {
         await cb(
           (options?.validateFiles ?? config.validateFiles) ? data : withoutFiles(data),
           headers,
         )
       }
-
       form.forgetErrors(...keys)
       const onSuccess = (options?.onValidationSuccess ?? (() => Promise.resolve()))
       await onSuccess(data)
     }
     catch (error) {
-      if (!(error instanceof Error))
-        throw error
+      const err = error instanceof Error
+        ? error
+        : new Error('An error occurred while validating the form. Please try again.')
 
-      const errorData = resolvePrecognitiveErrorData(error, [
+      const errorData = resolvePrecognitiveErrorData(err, [
         ...baseParsers,
         ...$precognition.parsers.errorParsers,
       ])
@@ -54,7 +52,8 @@ export function makeValidator<TData extends object, TResp>(
         form.setErrors(errorData)
 
       const onError = options?.onValidationError ?? (() => Promise.resolve())
-      await onError(error, data, keys)
+
+      await onError(err, data, keys)
     }
     finally {
       form.validating = false
@@ -65,7 +64,7 @@ export function makeValidator<TData extends object, TResp>(
   const validator = debounce(
     validate,
     options?.validationTimeout ?? config.validationTimeout,
-    { leading: true, trailing: false },
+    { leading: true, trailing: true },
   )
 
   return validator

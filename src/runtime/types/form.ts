@@ -11,16 +11,15 @@ interface SubmitOptions<TData extends object, TResp> {
 export interface Form<TData extends object, Tresp> {
   data: () => TData
   setData: (data: TData) => void
-  errors: Map<string, string>
-  errorMessage: string | undefined
+  error: Error | null
+  errors: Partial<Record<NestedKeyOf<TData>, string>>
   validatedKeys: NestedKeyOf<TData>[]
   processing: boolean
   validating: boolean
   disabled: () => boolean
-  error: (key?: NestedKeyOf<TData>) => string | undefined
   validate: (...keys: NestedKeyOf<TData>[]) => void
   reset: () => void
-  submit: (options?: SubmitOptions<TData, Tresp>) => Promise<Tresp>
+  submit: (options?: SubmitOptions<TData, Tresp>) => Promise<void>
   valid: (...keys: (NestedKeyOf<TData>)[]) => boolean
   invalid: (...keys: (NestedKeyOf<TData>)[]) => boolean
   touched: (...keys: (NestedKeyOf<TData>)[]) => boolean

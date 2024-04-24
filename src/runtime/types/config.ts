@@ -17,8 +17,10 @@ export interface Config {
   errorStatusCode: number
   /** precognitive success validation status code, @default 204 */
   successValidationStatusCode: number
-  /** disable nuxt precognitive error parser, @default false */
-  disableNuxtErrorParser: boolean
-  /** disable laravel precognitive error parser, @default false */
-  disableLaravelErrorParser: boolean
+  /** enable Nuxt precognitive error parser client side, @default false */
+  enableClientNuxtErrorParser: boolean
+  /** enable Laravel precognitive error parser client side, @default false */
+  enableClientLaravelErrorParser: boolean
+  /** enable Laravel precognitive error parsers server side, @default false */
+  enableServerLaravelErrorParser: boolean
 }

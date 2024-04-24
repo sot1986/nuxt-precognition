@@ -64,7 +64,7 @@ const form = useForm(() => newUser, (body, headers) => $fetch('/api/login', {
                 autocomplete="email"
                 required
                 class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
-                @change="form.validate('email')"
+                @input="form.validate('email')"
               >
               <div
                 v-if="form.valid('email')"
@@ -74,7 +74,7 @@ const form = useForm(() => newUser, (body, headers) => $fetch('/api/login', {
               </div>
             </div>
             <p v-if="form.invalid('email')">
-              {{ form.error('email') }}
+              {{ form.errors.email }}
             </p>
           </div>
 
@@ -110,7 +110,7 @@ const form = useForm(() => newUser, (body, headers) => $fetch('/api/login', {
               </div>
             </div>
             <p v-if="form.invalid('password')">
-              {{ form.error('password') }}
+              {{ form.errors.password }}
             </p>
           </div>
 

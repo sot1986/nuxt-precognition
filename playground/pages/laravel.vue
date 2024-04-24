@@ -54,7 +54,7 @@ const postForm = useForm(
           v-if="postForm.valid('title')"
           class="absolute p-1 inset-y-0 right-0 translate-x-full"
         >OK</div>
-        <p v-if="postForm.invalid('title')">{{ postForm.error('title') }}</p>
+        <p v-if="postForm.invalid('title')">{{ postForm.errors.title }}</p>
       </label>
 
       <label class="flex flex-col gap-2 relative">
@@ -69,7 +69,7 @@ const postForm = useForm(
           v-if="postForm.valid('content')"
           class="absolute p-1 inset-y-0 right-0 translate-x-full"
         >OK</div>
-        <p v-if="postForm.invalid('content')">{{ postForm.error('content') }}</p>
+        <p v-if="postForm.invalid('content')">{{ postForm.errors.content }}</p>
       </label>
 
       <button

@@ -14,6 +14,9 @@ describe('test core functions', () => {
     backendValidation: true,
     successValidationStatusCode: 204,
     validateFiles: false,
+    enableClientLaravelErrorParser: true,
+    enableClientNuxtErrorParser: true,
+    enableServerLaravelErrorParser: true,
   }
 
   function makeNuxtPrecognitiveError(errors: Record<string, string | string[]> = {}): NuxtPrecognitiveError {

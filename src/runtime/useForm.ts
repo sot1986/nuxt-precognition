@@ -40,16 +40,8 @@ export function useForm<TData extends object, TResp>(
       Object.assign(form, data)
     },
     validatedKeys: [],
-    errors: new Map<string, string>(),
-    errorMessage: undefined,
-    error(key) {
-      if (key)
-        return form.errors.get(key)
-      const firstKey = Array.from(form.errors.keys()).at(0)
-      if (firstKey)
-        return form.errors.get(firstKey)
-      return undefined
-    },
+    errors: {},
+    error: null,
     validate(...keys: NestedKeyOf<TData>[]) {
       if (form.validating)
         return
@@ -58,28 +50,26 @@ export function useForm<TData extends object, TResp>(
     },
     reset() {
       Object.assign(this, getInitialData())
-      form.errors.clear()
+      form.errors = {}
       form.validatedKeys = []
     },
     async submit(o) {
       if (form.processing)
-        return Promise.reject(new Error('Form is currently disabled.'))
+        return
 
       const data = form.data()
       try {
         const onBefore = o?.onBefore ? await o.onBefore(data) : true
 
         if (!onBefore)
-          return Promise.reject(new Error('Submission canceled'))
+          return
 
         form.processing = true
 
         const resp = await cb(data, o?.headers ?? new Headers())
 
         if (o?.onSuccess)
-          return o.onSuccess(resp, data)
-
-        return resp
+          await o.onSuccess(resp, data)
       }
       catch (error) {
         const e = error instanceof Error ? error : new Error('Invalid form')
@@ -92,8 +82,6 @@ export function useForm<TData extends object, TResp>(
 
         if (o?.onError)
           await o?.onError(e, data)
-
-        return Promise.reject(e)
       }
       finally {
         form.processing = false
@@ -101,15 +89,15 @@ export function useForm<TData extends object, TResp>(
     },
     valid: (...keys) => {
       if (keys.length === 0)
-        return form.errors.size === 0
+        return Object.keys(form.errors).length === 0
 
-      return keys.reduce((acc, key) => acc && (form.validatedKeys.includes(key) && !form.errors.has(key)), true)
+      return keys.reduce((acc, key) => acc && (form.validatedKeys.includes(key) && !form.errors[key]), true)
     },
     invalid: (...keys) => {
       if (keys.length === 0)
-        return form.errors.size > 0
+        return Object.keys(form.errors).length === 0
 
-      return keys.reduce((acc, key) => acc || (form.validatedKeys.includes(key) && form.errors.has(key)), false)
+      return keys.reduce((acc, key) => acc || (form.validatedKeys.includes(key) && !!form.errors[key]), false)
     },
     touched: (...keys) => {
       if (keys.length === 0)
@@ -129,27 +117,27 @@ export function useForm<TData extends object, TResp>(
     },
     forgetErrors(...keys) {
       if (keys.length === 0) {
-        form.errors.clear()
-        form.errorMessage = undefined
+        form.errors = {}
+        form.error = null
         form.validatedKeys = []
         return
       }
       keys.forEach((key) => {
-        form.errors.delete(key)
+        if (key in form.errors)
+          form.errors[key] = undefined
         const index = form.validatedKeys.indexOf(key)
         if (index > -1)
           form.validatedKeys.splice(index, 1)
       })
     },
     setErrors(data: ValidationErrorsData) {
-      form.errors.clear()
-      form.errorMessage = data.message
+      form.errors = {}
+      form.error = new Error(data.message)
 
-      for (const [key, value] of Object.entries(data.errors)) {
-        if (form.errors.has(key))
-          continue
-        form.errors.set(key, Array.isArray(value) ? (value.at(0) ?? data.message) : value)
-      }
+      Object.keys(data.errors).forEach((key) => {
+        const error = data.errors[key]
+        form.errors[key as NestedKeyOf<TData>] = Array.isArray(error) ? error[0] : error
+      })
     },
   }) as TData & Form<TData, TResp>
 
