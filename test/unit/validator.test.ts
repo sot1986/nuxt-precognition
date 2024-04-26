@@ -90,6 +90,10 @@ describe('test validator functions', () => {
         hook.push('onBeforeValidation')
         return true
       },
+      onValidationStart: () => {
+        hook.push('onValidationStart')
+        return Promise.resolve()
+      },
       clientValidation: () => {
         hook.push('clientValidation')
         return Promise.resolve()
@@ -106,7 +110,13 @@ describe('test validator functions', () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await validator.validate({ data: () => ({}), touch: () => {}, forgetErrors: () => {} } as any)
 
-    expect(hook).toEqual(['onBeforeValidation', 'clientValidation', 'cb', 'onValidationSuccess'])
+    expect(hook).toEqual([
+      'onBeforeValidation',
+      'onValidationStart',
+      'clientValidation',
+      'cb',
+      'onValidationSuccess',
+    ])
   })
 
   it('validator function intercept error and execute onError', async () => {
@@ -120,6 +130,10 @@ describe('test validator functions', () => {
       onBeforeValidation: () => {
         hook.push('onBeforeValidation')
         return true
+      },
+      onValidationStart: () => {
+        hook.push('onValidationStart')
+        return Promise.resolve()
       },
       clientValidation: () => {
         hook.push('clientValidation')
@@ -138,7 +152,13 @@ describe('test validator functions', () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await validator.validate({ data: () => ({}), touch: () => {}, forgetErrors: () => {} } as any)
 
-    expect(hook).toEqual(['onBeforeValidation', 'clientValidation', 'cb', 'onValidationError'])
+    expect(hook).toEqual([
+      'onBeforeValidation',
+      'onValidationStart',
+      'clientValidation',
+      'cb',
+      'onValidationError',
+    ])
   })
 
   it('validator returns a debounce function of validate', async () => {

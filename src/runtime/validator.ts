@@ -37,6 +37,9 @@ export function makeValidator<TData extends object, TResp>(
         if (!onBefore)
           return
 
+        const onValidationStart = validateOptions.onValidationStart ?? (() => Promise.resolve())
+        await onValidationStart(data)
+
         const clientValidation = validateOptions?.clientValidation ?? (() => Promise.resolve())
         await clientValidation(data)
 

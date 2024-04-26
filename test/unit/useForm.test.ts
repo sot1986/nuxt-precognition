@@ -454,4 +454,68 @@ describe ('test useForm composable', () => {
       email: 'The email is required',
     })
   })
+
+  it('triggers submit events in correct order on success', async () => {
+    const initialData = {
+      name: 'John Doe',
+      email: 'john@email.it',
+    }
+
+    const hook: string[] = []
+    const cb = () => {
+      hook.push('cb')
+      return Promise.resolve()
+    }
+
+    const form = useForm(initialData, cb)
+
+    await form.submit({
+      onBefore: () => {
+        hook.push('onBefore')
+        return true
+      },
+      onStart: () => {
+        hook.push('onStart')
+        return Promise.resolve()
+      },
+      onSuccess: () => {
+        hook.push('onSuccess')
+        return Promise.resolve()
+      },
+    })
+
+    expect(hook).toEqual(['onBefore', 'onStart', 'cb', 'onSuccess'])
+  })
+
+  it('triggers submit events in correct order on error', async () => {
+    const initialData = {
+      name: 'John Doe',
+      email: 'john@email.it',
+    }
+
+    const hook: string[] = []
+    const cb = () => {
+      hook.push('cb')
+      return Promise.reject(new Error('error'))
+    }
+
+    const form = useForm(initialData, cb)
+
+    await form.submit({
+      onBefore: () => {
+        hook.push('onBefore')
+        return true
+      },
+      onStart: () => {
+        hook.push('onStart')
+        return Promise.resolve()
+      },
+      onError: () => {
+        hook.push('onError')
+        return Promise.resolve()
+      },
+    })
+
+    expect(hook).toEqual(['onBefore', 'onStart', 'cb', 'onError'])
+  })
 })

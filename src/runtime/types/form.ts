@@ -3,8 +3,9 @@ import type { NestedKeyOf } from './utils'
 
 interface SubmitOptions<TData extends object, TResp> {
   headers?: Headers
-  onError?: (error: Error, data: TData) => Promise<never> | never
+  onError?: (error: Error, data: TData) => Promise<void> | void
   onBefore?: (data: TData) => Promise<boolean> | boolean
+  onStart?: (data: TData) => Promise<void> | void
   onSuccess?: <T = TResp>(resp: T, data: TData) => Promise<TResp>
 }
 
@@ -35,6 +36,7 @@ export interface UseFormOptions<TData extends object> {
   backendValidation?: boolean
   validateFiles?: boolean
   onBeforeValidation?: (data: TData) => boolean
+  onValidationStart?: (data: TData) => Promise<void> | void
   clientValidation?: (data: TData) => Promise<void> | void
   onValidationError?: (error: Error, data: TData, keys: NestedKeyOf<TData>[]) => Promise<void> | void
   onValidationSuccess?: (data: TData) => Promise<void> | void

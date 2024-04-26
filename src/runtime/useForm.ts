@@ -67,6 +67,9 @@ export function useForm<TData extends object, TResp>(
 
         form.processing = true
 
+        if (o?.onStart)
+          await o.onStart(data)
+
         const resp = await cb(data, o?.headers ?? new Headers())
 
         if (o?.onSuccess)
