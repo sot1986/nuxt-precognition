@@ -1,10 +1,10 @@
-import type { PrecognitiveErrorParser } from './types/core'
+import type { ValidationErrorParser } from './types/core'
 import { defineNuxtPlugin } from '#imports'
 
 export default defineNuxtPlugin((_nuxtApp) => {
-  const errorParsers: PrecognitiveErrorParser[] = []
+  const errorParsers: ValidationErrorParser[] = []
 
-  function addErrorParser(parser: PrecognitiveErrorParser) {
+  function addErrorParser(parser: ValidationErrorParser) {
     errorParsers.push(parser)
   }
 

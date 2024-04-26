@@ -1,10 +1,10 @@
 import { cloneDeep } from 'lodash-es'
 import type { Form, UseFormOptions } from './types/form'
-import { getAllNestedKeys, resolveDynamicObject } from './core'
+import { getAllNestedKeys, resolveDynamicObject, resolveValidationErrorData } from './core'
 import { makeValidator } from './validator'
 import type { NestedKeyOf } from './types/utils'
 import type { ValidationErrorsData } from './types/core'
-import { reactive, toRaw, useNuxtApp } from '#imports'
+import { reactive, toRaw } from '#imports'
 
 export function useForm<TData extends object, TResp>(
   init: TData | (() => TData),
@@ -17,11 +17,9 @@ export function useForm<TData extends object, TResp>(
     return cloneDeep(toRaw(resolveDynamicObject(init)))
   }
 
-  const { $precognition } = useNuxtApp()
-
   const validator = makeValidator(cb, options)
 
-  const form = reactive({
+  const form = reactive<TData & Form<TData, TResp>>({
     ...getInitialData(),
     data: () => {
       const data = cloneDeep(toRaw(form))
@@ -38,20 +36,23 @@ export function useForm<TData extends object, TResp>(
     disabled: () => form.processing || form.validating,
     setData: (data) => {
       Object.assign(form, data)
+      return form
     },
     validatedKeys: [],
     errors: {},
     error: null,
     validate(...keys: NestedKeyOf<TData>[]) {
       if (form.validating)
-        return
+        return form
       form.validating = true
-      validator(form, ...keys)
+      validator.validate(form, ...keys)
+      return form
     },
     reset() {
       Object.assign(this, getInitialData())
       form.errors = {}
       form.validatedKeys = []
+      return form
     },
     async submit(o) {
       if (form.processing)
@@ -74,11 +75,10 @@ export function useForm<TData extends object, TResp>(
       catch (error) {
         const e = error instanceof Error ? error : new Error('Invalid form')
 
-        $precognition.parsers.errorParsers.forEach((parser) => {
-          const errorsData = parser(e)
-          if (errorsData)
-            form.setErrors(errorsData)
-        })
+        const errorsData = resolveValidationErrorData(e, validator.errorParsers)
+
+        if (errorsData)
+          form.setErrors(errorsData)
 
         if (o?.onError)
           await o?.onError(e, data)
@@ -89,13 +89,13 @@ export function useForm<TData extends object, TResp>(
     },
     valid: (...keys) => {
       if (keys.length === 0)
-        return Object.keys(form.errors).length === 0
+        return Object.values(form.errors).reduce<boolean>((acc, error) => acc && !!error, true)
 
       return keys.reduce((acc, key) => acc && (form.validatedKeys.includes(key) && !form.errors[key]), true)
     },
     invalid: (...keys) => {
       if (keys.length === 0)
-        return Object.keys(form.errors).length === 0
+        return Object.values(form.errors).reduce<boolean>((acc, error) => acc || !!error, false)
 
       return keys.reduce((acc, key) => acc || (form.validatedKeys.includes(key) && !!form.errors[key]), false)
     },
@@ -108,19 +108,21 @@ export function useForm<TData extends object, TResp>(
     touch(...keys) {
       if (keys.length === 0) {
         getAllNestedKeys(form.data()).forEach(key => form.touch(key))
-        return
+        return form
       }
       keys.forEach((key) => {
         if (!form.validatedKeys.includes(key))
           form.validatedKeys.push(key)
       })
+
+      return form
     },
     forgetErrors(...keys) {
       if (keys.length === 0) {
         form.errors = {}
         form.error = null
         form.validatedKeys = []
-        return
+        return form
       }
       keys.forEach((key) => {
         if (key in form.errors)
@@ -129,6 +131,7 @@ export function useForm<TData extends object, TResp>(
         if (index > -1)
           form.validatedKeys.splice(index, 1)
       })
+      return form
     },
     setErrors(data: ValidationErrorsData) {
       form.errors = {}
@@ -138,6 +141,11 @@ export function useForm<TData extends object, TResp>(
         const error = data.errors[key]
         form.errors[key as NestedKeyOf<TData>] = Array.isArray(error) ? error[0] : error
       })
+      return form
+    },
+    validateFiles() {
+      validator.setValidateFiles(true)
+      return form
     },
   }) as TData & Form<TData, TResp>
 

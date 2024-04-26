@@ -5,36 +5,28 @@ export interface ValidationErrorsData {
   errors: ValidationErrors
 }
 
-export type PrecognitiveValidationErrorStatus = number
+export type ValidationErrorStatus = number
 
 export type PrecognitiveValidationSuccessStatus = number
-
-export interface PrecognitveSuccessResponse extends Response {
-  headers: Headers
-  status: PrecognitiveValidationSuccessStatus
-}
 
 export interface NuxtValidationErrorsData {
   data: ValidationErrorsData
 }
 
 export interface NuxtPrecognitiveErrorResponse extends Response {
-  headers: Headers
   _data: NuxtValidationErrorsData
-  status: PrecognitiveValidationErrorStatus
 }
 export interface NuxtPrecognitiveError extends Error {
   response: NuxtPrecognitiveErrorResponse
 }
 
 export interface LaravelPrecognitiveErrorResponse extends Response {
-  headers: Headers
   _data: ValidationErrorsData
-  status: PrecognitiveValidationErrorStatus
+  status: ValidationErrorStatus
 }
 
 export interface LaravelPrecognitiveError extends Error {
   response: LaravelPrecognitiveErrorResponse
 }
 
-export type PrecognitiveErrorParser = (error: Error) => ValidationErrorsData | undefined | null
+export type ValidationErrorParser = (error: Error) => ValidationErrorsData | undefined | null

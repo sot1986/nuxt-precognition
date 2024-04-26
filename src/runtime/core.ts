@@ -1,17 +1,11 @@
-import type { NuxtPrecognitiveError, PrecognitiveValidationErrorStatus, ValidationErrors, ValidationErrorsData, NuxtPrecognitiveErrorResponse, PrecognitiveValidationSuccessStatus, PrecognitveSuccessResponse, LaravelPrecognitiveErrorResponse, NuxtValidationErrorsData, PrecognitiveErrorParser } from './types/core'
+import type { NuxtPrecognitiveError, ValidationErrorStatus, ValidationErrors, ValidationErrorsData, NuxtPrecognitiveErrorResponse, LaravelPrecognitiveErrorResponse, NuxtValidationErrorsData, ValidationErrorParser } from './types/core'
 import type { NestedKeyOf } from './types/utils'
 import type { Config } from './types/config'
 
-export function isPrecognitiveSuccessResponse(response: Response, config: Config): response is PrecognitveSuccessResponse {
-  return hasPrecognitiveSuccessStatusCode(response, config) && hasPrecognitiveHeader(response, config) && hasPrecognitiveSuccessHeaders(response, config)
-}
-
-function hasPrecognitiveSuccessStatusCode(response: Response, config: Config): response is Response & { status: PrecognitiveValidationSuccessStatus } {
+export function isPrecognitiveSuccessResponse(response: Response, config: Config): boolean {
   return response.status === config.successValidationStatusCode
-}
-
-function hasPrecognitiveSuccessHeaders(response: Response, config: Config): response is Response & { headers: Headers } {
-  return response.headers.get(config.successfulHeader) === 'true'
+    && hasPrecognitiveHeader(response, config)
+    && response.headers.get(config.successfulHeader) === 'true'
 }
 
 export function isNuxtPrecognitiveError(error: Error, config: Config): error is NuxtPrecognitiveError {
@@ -19,14 +13,17 @@ export function isNuxtPrecognitiveError(error: Error, config: Config): error is 
 }
 
 function hasNuxtPrecognitiveResponse(error: Error, config: Config): error is Error & { response: NuxtPrecognitiveErrorResponse } {
-  return hasResponse(error) && hasPrecognitiveValidationStatusCode(error.response, config) && hasPrecognitiveHeader(error.response, config) && hasNuxtValidationErrorsData(error.response)
+  return hasResponse(error)
+    && hasValidationStatusCode(error.response, config)
+    && hasPrecognitiveHeader(error.response, config)
+    && hasNuxtValidationErrorsData(error.response)
 }
 
 function hasResponse(error: Error): error is Error & { response: Response } {
   return 'response' in error && error.response instanceof Response
 }
 
-function hasPrecognitiveValidationStatusCode(response: Response, config: Config): response is Response & { status: PrecognitiveValidationErrorStatus } {
+function hasValidationStatusCode(response: Response, config: Config): response is Response & { status: ValidationErrorStatus } {
   return response.status === config.errorStatusCode
 }
 
@@ -47,7 +44,7 @@ export function isLaravelPrecognitiveError(error: Error, config: Config): error 
 }
 
 function hasLaravelPrecognitiveResponse(error: Error, config: Config): error is Error & { response: LaravelPrecognitiveErrorResponse } {
-  return hasResponse(error) && hasPrecognitiveValidationStatusCode(error.response, config) && hasPrecognitiveHeader(error.response, config) && hasLaravelValidationErrorsData(error.response)
+  return hasResponse(error) && hasValidationStatusCode(error.response, config) && hasPrecognitiveHeader(error.response, config) && hasLaravelValidationErrorsData(error.response)
 }
 
 function hasLaravelValidationErrorsData(response: Response): response is Response & { _data: ValidationErrorsData } {
@@ -114,14 +111,16 @@ export function isFile(value: unknown): value is Blob | File | FileList {
     : false
 }
 
-export function resolvePrecognitiveErrorData(error: Error, parsers: PrecognitiveErrorParser[]) {
-  return parsers.reduce<ValidationErrorsData | undefined | null>((errors, parser) => errors ?? parser(error), null)
+export function resolveValidationErrorData(error: Error, parsers: ValidationErrorParser[]) {
+  return parsers.reduce<ValidationErrorsData | undefined | null>(
+    (errors, parser) => errors ?? parser(error), null,
+  )
 }
 
-export function makeNuxtErrorParser(config: Config): PrecognitiveErrorParser {
-  return error => isNuxtPrecognitiveError(error, config) ? error.response._data.data : null
+export function makeNuxtValidationErrorParser(config: Config): ValidationErrorParser {
+  return error => (hasResponse(error) && hasValidationStatusCode(error.response, config) && hasNuxtValidationErrorsData(error.response)) ? error.response._data.data : null
 }
 
-export function makeLaravelErrorParser(config: Config): PrecognitiveErrorParser {
-  return error => isLaravelPrecognitiveError(error, config) ? error.response._data : null
+export function makeLaravelValidationErrorParser(config: Config): ValidationErrorParser {
+  return error => (hasResponse(error) && hasValidationStatusCode(error.response, config) && hasLaravelValidationErrorsData(error.response)) ? error.response._data : null
 }

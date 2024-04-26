@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { getAllNestedKeys, isFile, isLaravelPrecognitiveError, isNuxtPrecognitiveError, resolveDynamicObject, hasPrecognitiveRequestsHeader, requestPrecognitiveHeaders, resolvePrecognitiveErrorData, makeLaravelErrorParser, makeNuxtErrorParser } from '../../src/runtime/core'
+import { getAllNestedKeys, isFile, isLaravelPrecognitiveError, isNuxtPrecognitiveError, resolveDynamicObject, hasPrecognitiveRequestsHeader, requestPrecognitiveHeaders, resolveValidationErrorData, makeLaravelValidationErrorParser, makeNuxtValidationErrorParser } from '../../src/runtime/core'
 import type { NuxtPrecognitiveErrorResponse, NuxtPrecognitiveError, LaravelPrecognitiveErrorResponse, LaravelPrecognitiveError } from '~/src/runtime/types/core'
 import type { Config } from '~/src/runtime/types/config'
 
@@ -180,23 +180,23 @@ describe('test core functions', () => {
 
   it.each([
     { a: 'error', b: ['error', 'error'] },
-  ])('resolvePrecognitiveErrorData returns errors data when receive Nuxt Precognitive Error', (errors) => {
+  ])('resolveValidationErrorData returns errors data when receive Nuxt Precognitive Error', (errors) => {
     const error = makeNuxtPrecognitiveError(errors)
 
-    expect(resolvePrecognitiveErrorData(error, [
-      makeLaravelErrorParser(config),
-      makeNuxtErrorParser(config),
+    expect(resolveValidationErrorData(error, [
+      makeLaravelValidationErrorParser(config),
+      makeNuxtValidationErrorParser(config),
     ])?.errors).toEqual(errors)
   })
 
   it.each([
     { a: 'error', b: ['error', 'error'] },
-  ])('resolvePrecognitiveErrorData returns errors data when receive Laravel Precognitive Error', (errors) => {
+  ])('resolveValidationErrorData returns errors data when receive Laravel Precognitive Error', (errors) => {
     const error = makeLaravelPrecognitiveError(errors)
 
-    expect(resolvePrecognitiveErrorData(error, [
-      makeLaravelErrorParser(config),
-      makeNuxtErrorParser(config),
+    expect(resolveValidationErrorData(error, [
+      makeLaravelValidationErrorParser(config),
+      makeNuxtValidationErrorParser(config),
     ])?.errors).toEqual(errors)
   })
 })

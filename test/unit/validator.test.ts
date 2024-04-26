@@ -1,10 +1,39 @@
 import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest'
 import { makeValidator, withoutFiles } from '../../src/runtime/validator'
+import type { Config } from '../../src/runtime/types/config'
+import { makeLaravelValidationErrorParser, makeNuxtValidationErrorParser } from '../../src/runtime/core'
 
 describe('test validator functions', () => {
+  const config: Config = {
+    precognitiveHeader: 'X-Precognitive',
+    successfulHeader: 'X-Precognitive-Successful',
+    validateOnlyHeader: 'X-Precognitive-Validate-Only',
+    errorStatusCode: 422,
+    validatingKeysSeparator: ',',
+    validationTimeout: 1000,
+    backendValidation: true,
+    successValidationStatusCode: 204,
+    validateFiles: false,
+    enableClientLaravelErrorParser: true,
+    enableClientNuxtErrorParser: true,
+    enableServerLaravelErrorParser: true,
+  }
+
+  const errorParsers = [
+    makeLaravelValidationErrorParser(config),
+    makeNuxtValidationErrorParser(config),
+  ]
+
   beforeEach(() => {
     vi.useFakeTimers()
     vi.mock('#imports', () => ({
+      useNuxtApp: () => ({
+        $precognition: {
+          parsers: {
+            errorParsers: [],
+          },
+        },
+      }),
       useRuntimeConfig: () => ({
         public: {
           nuxtPrecognition: {
@@ -12,7 +41,7 @@ describe('test validator functions', () => {
             successfulHeader: 'X-Precognitive-Successful',
             validateOnlyHeader: 'X-Precognitive-Validate-Only',
             errorStatusCode: 422,
-            validatingKeysSeparator: '.',
+            validatingKeysSeparator: ',',
             validationTimeout: 1000,
             backendValidation: true,
             successValidationStatusCode: 204,
@@ -20,13 +49,6 @@ describe('test validator functions', () => {
             enableClientLaravelErrorParser: true,
             enableClientNuxtErrorParser: true,
             enableServerLaravelErrorParser: true,
-          },
-        },
-      }),
-      useNuxtApp: () => ({
-        $precognition: {
-          parsers: {
-            errorParsers: [],
           },
         },
       }),
@@ -78,10 +100,11 @@ describe('test validator functions', () => {
         hook.push('onValidationSuccess')
         return Promise.resolve()
       },
+      clientErrorParsers: errorParsers,
     })
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await validator({ data: () => ({}), touch: () => {}, forgetErrors: () => {} } as any)
+    await validator.validate({ data: () => ({}), touch: () => {}, forgetErrors: () => {} } as any)
 
     expect(hook).toEqual(['onBeforeValidation', 'clientValidation', 'cb', 'onValidationSuccess'])
   })
@@ -104,14 +127,16 @@ describe('test validator functions', () => {
       },
       backendValidation: true,
       validateFiles: false,
+      validationTimeout: 1000,
       onValidationError: () => {
         hook.push('onValidationError')
         return Promise.resolve()
       },
+      clientErrorParsers: errorParsers,
     })
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await validator({ data: () => ({}), touch: () => {}, forgetErrors: () => {} } as any)
+    await validator.validate({ data: () => ({}), touch: () => {}, forgetErrors: () => {} } as any)
 
     expect(hook).toEqual(['onBeforeValidation', 'clientValidation', 'cb', 'onValidationError'])
   })
@@ -125,17 +150,17 @@ describe('test validator functions', () => {
       return Promise.resolve()
     }
 
-    const validator = makeValidator(updateCounter)
+    const validator = makeValidator(updateCounter, { clientErrorParsers: errorParsers, validationTimeout: 1000 })
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const fakeForm = { data: () => ({}), touch: () => {}, forgetErrors: () => {} } as any
 
     value = 'a'
-    await validator(fakeForm)
+    await validator.validate(fakeForm)
     expect(label).toBe('a')
 
     await vi.advanceTimersByTimeAsync(300)
     value = 'b'
-    await validator(fakeForm)
+    await validator.validate(fakeForm)
     expect(label).toBe('a')
 
     await vi.advanceTimersByTimeAsync(1200)
@@ -145,16 +170,16 @@ describe('test validator functions', () => {
     expect(label).toBe('b')
 
     value = 'c'
-    await validator(fakeForm)
+    await validator.validate(fakeForm)
     expect(label).toBe('c')
 
     await vi.advanceTimersByTimeAsync(300)
     value = 'd'
-    await validator(fakeForm)
+    await validator.validate(fakeForm)
     expect(label).toBe('c')
 
     value = 'e'
-    await validator(fakeForm)
+    await validator.validate(fakeForm)
     await vi.advanceTimersByTimeAsync(300)
     expect(label).toBe('c')
 
