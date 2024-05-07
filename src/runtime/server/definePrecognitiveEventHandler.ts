@@ -3,6 +3,8 @@ import { defineEventHandler, setResponseHeader, createError, setResponseStatus }
 import type { ValidationErrorParser, ValidationErrorsData } from '../types/core'
 import { hasResponse, makeLaravelValidationErrorParser, resolveValidationErrorData } from '../core'
 import type { Config } from '../types/config'
+import type { ServerStatusHandlers } from '../types/eventHandler'
+import type { ErrorStatusCode } from '../types/utils'
 import { useRuntimeConfig } from '#imports'
 
 function definePrecognitiveEventHandler<
@@ -12,9 +14,7 @@ TResponse,
   handler: EventHandlerObject<TRequest, TResponse>,
   options?: {
     errorParsers?: ValidationErrorParser[]
-    statusHandlers?: {
-      [key: number]: (error: Error, event: H3Event<TRequest>) => void | Promise<void>
-    }
+    statusHandlers?: ServerStatusHandlers
   },
 ): EventHandler<TRequest, TResponse> {
   return defineEventHandler<TRequest, TResponse>({
@@ -28,7 +28,7 @@ function onPrecognitiveRequest<T extends EventHandlerRequest>(
   onRequest: _RequestMiddleware<T> | _RequestMiddleware<T>[] | undefined,
   options?: {
     errorParsers?: ValidationErrorParser[]
-    statusHandlers?: { [key: number]: (error: Error, event: H3Event<T>) => void | Promise<void> }
+    statusHandlers?: ServerStatusHandlers
   },
 ) {
   if (!onRequest)
@@ -53,7 +53,7 @@ function onPrecognitiveRequestWrapper<T extends EventHandlerRequest>(
   config: Config,
   options: {
     errorParsers: ValidationErrorParser[]
-    statusHandlers?: { [key: number]: (error: Error, event: H3Event<T>) => void | Promise<void> }
+    statusHandlers?: ServerStatusHandlers
   },
 ): _RequestMiddleware<T> {
   return async (event) => {
@@ -69,8 +69,8 @@ function onPrecognitiveRequestWrapper<T extends EventHandlerRequest>(
         })
       }
 
-      const statusHandler = hasResponse(error)
-        ? options.statusHandlers?.[error.response.status]
+      const statusHandler = hasResponse(error) && options.statusHandlers
+        ? options.statusHandlers[`${error.response.status}` as ErrorStatusCode]
         : undefined
 
       if (statusHandler) {
@@ -163,17 +163,17 @@ function onPrecognitiveHandler<TRequest extends EventHandlerRequest, TResponse>(
 definePrecognitiveEventHandler.create = function <TRequest extends EventHandlerRequest, TResponse>(
   options: {
     errorParsers?: ValidationErrorParser[]
-    statusHandlers?: { [key: number]: (error: Error, event: H3Event<TRequest>) => void | Promise<void> }
+    statusHandlers?: ServerStatusHandlers
   },
 ): (
     handler: EventHandlerObject<TRequest, TResponse>,
     options?: {
       errorParsers?: ValidationErrorParser[]
-      statusHandlers?: { [key: number]: (error: Error, event: H3Event<TRequest>) => void | Promise<void> }
+      statusHandlers?: ServerStatusHandlers
     },
   ) => EventHandler<TRequest, TResponse> {
   const baseErrorParsers = [...(options.errorParsers ?? [])]
-  const baseStatusHandlers = { ...(options.statusHandlers ?? {}) }
+  const baseStatusHandlers = { ...options.statusHandlers }
   return <
   TRequest extends EventHandlerRequest,
   TResponse,
@@ -181,7 +181,7 @@ definePrecognitiveEventHandler.create = function <TRequest extends EventHandlerR
     handler: EventHandlerObject<TRequest, TResponse>,
     options?: {
       errorParsers?: ValidationErrorParser[]
-      statusHandlers?: { [key: number]: (error: Error, event: H3Event<TRequest>) => void | Promise<void> }
+      statusHandlers?: ServerStatusHandlers
     },
   ) => definePrecognitiveEventHandler(handler, { errorParsers: [...baseErrorParsers, ...(options?.errorParsers ?? [])], statusHandlers: { ...baseStatusHandlers, ...options?.statusHandlers } })
 }

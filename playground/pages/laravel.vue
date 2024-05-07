@@ -27,7 +27,7 @@ const postForm = useForm(
     '/api/posts' + (selectedPost.value ? `/${selectedPost.value.id}` : ''), {
       method: selectedPost.value ? 'PUT' : 'POST',
       headers,
-      body: JSON.stringify(data),
+      body: data,
     }),
 )
 </script>

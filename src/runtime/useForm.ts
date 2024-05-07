@@ -2,7 +2,7 @@ import { cloneDeep } from 'lodash-es'
 import type { Form, UseFormOptions } from './types/form'
 import { getAllNestedKeys, hasResponse, resolveDynamicObject, resolveValidationErrorData } from './core'
 import { makeValidator } from './validator'
-import type { NestedKeyOf } from './types/utils'
+import type { NestedKeyOf, ErrorStatusCode } from './types/utils'
 import type { ValidationErrorsData } from './types/core'
 import { reactive, toRaw } from '#imports'
 
@@ -80,6 +80,14 @@ export function useForm<TData extends object, TResp>(
       catch (error) {
         const err = error instanceof Error ? error : new Error('Invalid form')
 
+        const statusHandler = hasResponse(err)
+          ? validator.statusHandlers[`${err.response.status}` as ErrorStatusCode]
+          : undefined
+
+        if (statusHandler) {
+          return statusHandler(err as Error & { response: Response }, form)
+        }
+
         form.error = err
 
         const errorsData = resolveValidationErrorData(err, validator.errorParsers)
@@ -87,14 +95,6 @@ export function useForm<TData extends object, TResp>(
         if (errorsData) {
           form.setErrors(errorsData)
           form.touch()
-        }
-
-        const statusHandler = hasResponse(err)
-          ? validator.statusHandlers.get(err.response.status)
-          : undefined
-
-        if (statusHandler) {
-          return statusHandler(err as Error & { response: Response }, form)
         }
 
         if (o?.onError)

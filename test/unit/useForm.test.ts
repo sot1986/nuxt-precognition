@@ -3,7 +3,7 @@ import { reactive, toRaw } from 'vue'
 import { useForm } from '../../src/runtime/useForm'
 import type { Config } from '../../src/runtime/types/config'
 import type { NuxtPrecognitiveError, NuxtPrecognitiveErrorResponse } from './types'
-import type { ClientStatusHandler } from '~/src/runtime/types/form'
+import type { ClientStatusHandlers } from '~/src/runtime/types/form'
 
 describe ('test useForm composable', () => {
   const initialData = () => ({
@@ -50,16 +50,16 @@ describe ('test useForm composable', () => {
           parsers: {
             errorParsers: [],
           },
-          statusHandlers: new Map<number, ClientStatusHandler>([
-            [401, (error, form) => {
+          statusHandlers: {
+            401: (error, form) => {
               form.error = error
               form.error.message = 'Unauthorized'
-            }],
-            [403, (error, form) => {
+            },
+            403: (error, form) => {
               form.error = error
               form.error.message = 'Forbidden'
-            }],
-          ]),
+            },
+          } as ClientStatusHandlers,
         },
       }),
       useRuntimeConfig: () => ({
@@ -563,14 +563,14 @@ describe ('test useForm composable', () => {
 
     const error = new Error('error') as Error & { response: Response }
 
-    const statusHandlers = new Map<number, ClientStatusHandler>([
-      [401, (error, form) => {
+    const statusHandlers: ClientStatusHandlers = {
+      401: async (error, form) => {
         form.error = new Error('Unauthorized Custom')
-      }],
-      [403, (error, form) => {
+      },
+      403: async (error, form) => {
         form.error = new Error('Forbidden Custom')
-      }],
-    ])
+      },
+    }
 
     const cb = () => Promise.reject(error)
 

@@ -22,12 +22,13 @@ export default defineNuxtPlugin(() => {
     },
   )
 
-  $precognition.statusHandlers.set(401, async (error, form) => {
-    form.error = createError('Unauthorized')
-    await navigateTo('/login')
-  })
-
-  $precognition.statusHandlers.set(403, async (error, form) => {
-    form.error = createError('Forbidden')
-  })
+  $precognition.statusHandlers = {
+    401: async (error, form) => {
+      form.error = createError('Unauthorized')
+      await navigateTo('/login')
+    },
+    403: async (error, form) => {
+      form.error = createError('Forbidden')
+    },
+  }
 })

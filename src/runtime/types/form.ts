@@ -1,5 +1,5 @@
 import type { ValidationErrorParser, ValidationErrorsData } from './core'
-import type { NestedKeyOf } from './utils'
+import type { NestedKeyOf, ErrorStatusCode } from './utils'
 
 interface SubmitOptions<TData extends object, TResp> {
   headers?: Headers
@@ -30,7 +30,7 @@ export interface Form<TData extends object, Tresp> {
   validateFiles(): TData & Form<TData, Tresp>
 }
 
-export type ClientStatusHandler = <TData extends object, TResp>(error: Error & { response: Response }, form: TData & Form<TData, TResp>) => void | Promise<void>
+export type ClientStatusHandlers = Partial<Record<ErrorStatusCode, <TData extends object, TResp>(error: Error & { response: Response }, form: TData & Form<TData, TResp>) => void | Promise<void>>>
 
 export interface UseFormOptions<TData extends object> {
   validationHeaders?: Headers
@@ -43,5 +43,5 @@ export interface UseFormOptions<TData extends object> {
   onValidationError?: (error: Error, data: TData, keys: NestedKeyOf<TData>[]) => Promise<void> | void
   onValidationSuccess?: (data: TData) => Promise<void> | void
   clientErrorParsers?: ValidationErrorParser[]
-  statusHandlers?: Map<number, ClientStatusHandler>
+  statusHandlers?: ClientStatusHandlers
 }
