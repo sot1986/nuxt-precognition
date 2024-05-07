@@ -24,3 +24,5 @@ export interface Config {
   /** enable Laravel precognitive error parsers server side, @default false */
   enableServerLaravelErrorParser: boolean
 }
+
+export {}

@@ -1,4 +1,4 @@
-import { addImports, addPlugin, addServerImports, createResolver, defineNuxtModule } from '@nuxt/kit'
+import { addImports, addPlugin, addServerImports, createResolver, defineNuxtModule, addTemplate } from '@nuxt/kit'
 import defu from 'defu'
 import type { Config } from './runtime/types/config'
 
@@ -66,5 +66,38 @@ export default defineNuxtModule<ModuleOptions>({
         name: 'definePrecognitiveEventHandler',
       },
     ])
+
+    addTemplate({
+      filename: 'types/nuxt-precognition.d.ts',
+      getContents: () => [
+        `import type {ValidationErrorParser} from '${resolver.resolve('./runtime/types/core')}'`,
+        `import type {ClientStatusHandlers} from '${resolver.resolve('./runtime/types/form')}'`,
+        '',
+        'interface NuxtPrecognition {',
+        '  $precognition: {',
+        '    parsers: {',
+        '      errorParsers: ValidationErrorParser[]',
+        '    },',
+        '    statusHandlers: ClientStatusHandlers',
+        '  }',
+        '}',
+        '',
+        'declare module \'#app\' {',
+        '  interface NuxtApp extends NuxtPrecognition {}',
+        '}',
+        '',
+        'declare module \'vue\' {',
+        '  interface ComponentCustomProperties extends NuxtPrecognition {}',
+        '}',
+        '',
+        'export {}',
+      ].join('\n'),
+    })
+
+    nuxt.hook('prepare:types', (options) => {
+      options.references.push({
+        path: resolver.resolve(nuxt.options.buildDir, 'types/nuxt-precognition.d.ts'),
+      })
+    })
   },
 })

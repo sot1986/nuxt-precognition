@@ -6,3 +6,5 @@ export interface ValidationErrorsData {
 }
 
 export type ValidationErrorParser = (error: Error) => ValidationErrorsData | undefined | null
+
+export {}
