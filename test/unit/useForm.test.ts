@@ -2,7 +2,8 @@ import { afterEach, beforeEach, describe, it, vi, expect } from 'vitest'
 import { reactive, toRaw } from 'vue'
 import { useForm } from '../../src/runtime/useForm'
 import type { Config } from '../../src/runtime/types/config'
-import type { NuxtPrecognitiveError, NuxtPrecognitiveErrorResponse } from '../../src/runtime/types/core'
+import type { NuxtPrecognitiveError, NuxtPrecognitiveErrorResponse } from './types'
+import type { ClientStatusHandler } from '~/src/runtime/types/form'
 
 describe ('test useForm composable', () => {
   const initialData = () => ({
@@ -49,6 +50,16 @@ describe ('test useForm composable', () => {
           parsers: {
             errorParsers: [],
           },
+          statusHandlers: new Map<number, ClientStatusHandler>([
+            [401, (error, form) => {
+              form.error = error
+              form.error.message = 'Unauthorized'
+            }],
+            [403, (error, form) => {
+              form.error = error
+              form.error.message = 'Forbidden'
+            }],
+          ]),
         },
       }),
       useRuntimeConfig: () => ({
@@ -517,5 +528,59 @@ describe ('test useForm composable', () => {
     })
 
     expect(hook).toEqual(['onBefore', 'onStart', 'cb', 'onError'])
+  })
+
+  it.each([
+    { status: 401, message: 'Unauthorized' },
+    { status: 403, message: 'Forbidden' },
+  ])('handles the status code handlers from plugin', async ({ status, message }) => {
+    const initialData = {
+      name: 'John Doe',
+      email: 'john@email.it',
+    }
+
+    const error = new Error('error') as Error & { response: Response }
+    error.response = new Response(null, { status })
+
+    const cb = () => Promise.reject(error)
+
+    const form = useForm(initialData, cb)
+
+    await form.submit()
+
+    expect(form.error).toBeInstanceOf(Error)
+    expect(form.error?.message).toBe(message)
+  })
+
+  it.each([
+    { status: 401, message: 'Unauthorized Custom' },
+    { status: 403, message: 'Forbidden Custom' },
+  ])('handles custom status code handlers', async ({ status, message }) => {
+    const initialData = {
+      name: 'John Doe',
+      email: 'john@email.it',
+    }
+
+    const error = new Error('error') as Error & { response: Response }
+
+    const statusHandlers = new Map<number, ClientStatusHandler>([
+      [401, (error, form) => {
+        form.error = new Error('Unauthorized Custom')
+      }],
+      [403, (error, form) => {
+        form.error = new Error('Forbidden Custom')
+      }],
+    ])
+
+    const cb = () => Promise.reject(error)
+
+    const form = useForm(initialData, cb, { statusHandlers })
+
+    error.response = new Response(null, { status })
+
+    await form.submit()
+
+    expect(form.error).toBeInstanceOf(Error)
+    expect(form.error?.message).toBe(message)
   })
 })

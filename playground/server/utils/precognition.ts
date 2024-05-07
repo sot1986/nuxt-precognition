@@ -1,7 +1,7 @@
 import { ZodError } from 'zod'
 import { definePrecognitiveEventHandler } from '#imports'
 
-export const defineZodPrecognitiveEventHandler = definePrecognitiveEventHandler.create([
+export const defineZodPrecognitiveEventHandler = definePrecognitiveEventHandler.create({ errorParsers: [
   (error) => {
     if (error instanceof ZodError) {
       const errors: Record<string, string[]> = {}
@@ -17,4 +17,4 @@ export const defineZodPrecognitiveEventHandler = definePrecognitiveEventHandler.
       return { errors, message }
     }
   },
-])
+] })

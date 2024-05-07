@@ -1,50 +1,23 @@
-import type { NuxtPrecognitiveError, ValidationErrorStatus, ValidationErrors, ValidationErrorsData, NuxtPrecognitiveErrorResponse, LaravelPrecognitiveErrorResponse, NuxtValidationErrorsData, ValidationErrorParser } from './types/core'
+import type { ValidationErrors, ValidationErrorsData, ValidationErrorParser } from './types/core'
 import type { NestedKeyOf } from './types/utils'
 import type { Config } from './types/config'
 
-export function isPrecognitiveSuccessResponse(response: Response, config: Config): boolean {
-  return response.status === config.successValidationStatusCode
-    && hasPrecognitiveHeader(response, config)
-    && response.headers.get(config.successfulHeader) === 'true'
-}
-
-export function isNuxtPrecognitiveError(error: Error, config: Config): error is NuxtPrecognitiveError {
-  return hasNuxtPrecognitiveResponse(error, config)
-}
-
-function hasNuxtPrecognitiveResponse(error: Error, config: Config): error is Error & { response: NuxtPrecognitiveErrorResponse } {
-  return hasResponse(error)
-    && hasValidationStatusCode(error.response, config)
-    && hasPrecognitiveHeader(error.response, config)
-    && hasNuxtValidationErrorsData(error.response)
-}
-
-function hasResponse(error: Error): error is Error & { response: Response } {
+export function hasResponse(error: Error): error is Error & { response: Response } {
   return 'response' in error && error.response instanceof Response
 }
 
-function hasValidationStatusCode(response: Response, config: Config): response is Response & { status: ValidationErrorStatus } {
+function hasValidationStatusCode(response: Response, config: Config): boolean {
   return response.status === config.errorStatusCode
 }
 
-function hasPrecognitiveHeader(response: Response, config: Config): response is Response & { headers: Headers } {
-  return response.headers.get(config.precognitiveHeader) === 'true'
-}
-
-function hasNuxtValidationErrorsData(response: Response): response is Response & { _data: NuxtValidationErrorsData } {
+function hasNuxtValidationErrorsData(response: Response): response is Response & { _data: {
+  data: ValidationErrorsData
+} } {
   return hasResponseData(response) && 'data' in response._data && typeof response._data.data === 'object' && !!response._data.data && hasErrorMessage(response._data.data) && hasValidationErrors(response._data.data)
 }
 
 function hasResponseData(response: Response): response is Response & { _data: object } {
   return ('_data' in response) && typeof response._data === 'object' && !!response._data
-}
-
-export function isLaravelPrecognitiveError(error: Error, config: Config): error is Error & { response: LaravelPrecognitiveErrorResponse } {
-  return hasLaravelPrecognitiveResponse(error, config)
-}
-
-function hasLaravelPrecognitiveResponse(error: Error, config: Config): error is Error & { response: LaravelPrecognitiveErrorResponse } {
-  return hasResponse(error) && hasValidationStatusCode(error.response, config) && hasPrecognitiveHeader(error.response, config) && hasLaravelValidationErrorsData(error.response)
 }
 
 function hasLaravelValidationErrorsData(response: Response): response is Response & { _data: ValidationErrorsData } {
@@ -65,10 +38,6 @@ function hasValidationErrors(data: object): data is Partial<ValidationErrorsData
 
 export function resolveDynamicObject<T extends object>(object: T | (() => T)): T {
   return typeof object === 'function' ? object() : object
-}
-
-export function hasPrecognitiveRequestsHeader(headers: HeadersInit, config: Config): boolean {
-  return new Headers(headers).get(config.precognitiveHeader) === 'true'
 }
 
 export function requestPrecognitiveHeaders(config: Config, headers?: HeadersInit, keys?: string[]): Headers {
@@ -100,9 +69,6 @@ export function getAllNestedKeys<
   return keys as TPrefix extends undefined ? NestedKeyOf<TData>[] : string[]
 }
 
-/**
- * Determine if the value is a file.
- */
 export function isFile(value: unknown): value is Blob | File | FileList {
   if (value instanceof Blob)
     return true

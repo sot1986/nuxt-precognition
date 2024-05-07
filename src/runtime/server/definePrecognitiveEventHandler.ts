@@ -1,7 +1,8 @@
 import type { EventHandler, EventHandlerObject, EventHandlerRequest, H3Event, _RequestMiddleware } from 'h3'
 import { defineEventHandler, setResponseHeader, createError, setResponseStatus } from 'h3'
 import type { ValidationErrorParser, ValidationErrorsData } from '../types/core'
-import { hasPrecognitiveRequestsHeader, makeLaravelValidationErrorParser, resolveValidationErrorData } from '../core'
+import { hasResponse, makeLaravelValidationErrorParser, resolveValidationErrorData } from '../core'
+import type { Config } from '../types/config'
 import { useRuntimeConfig } from '#imports'
 
 function definePrecognitiveEventHandler<
@@ -9,10 +10,15 @@ TRequest extends EventHandlerRequest,
 TResponse,
 >(
   handler: EventHandlerObject<TRequest, TResponse>,
-  errorParsers: ValidationErrorParser[] = [],
+  options?: {
+    errorParsers?: ValidationErrorParser[]
+    statusHandlers?: {
+      [key: number]: (error: Error, event: H3Event<TRequest>) => void | Promise<void>
+    }
+  },
 ): EventHandler<TRequest, TResponse> {
   return defineEventHandler<TRequest, TResponse>({
-    onRequest: onPrecognitiveRequest(handler.onRequest, errorParsers),
+    onRequest: onPrecognitiveRequest(handler.onRequest, options),
     handler: onPrecognitiveHandler(handler.handler),
     onBeforeResponse: handler.onBeforeResponse,
   })
@@ -20,55 +26,66 @@ TResponse,
 
 function onPrecognitiveRequest<T extends EventHandlerRequest>(
   onRequest: _RequestMiddleware<T> | _RequestMiddleware<T>[] | undefined,
-  errorParsers: ValidationErrorParser[],
+  options?: {
+    errorParsers?: ValidationErrorParser[]
+    statusHandlers?: { [key: number]: (error: Error, event: H3Event<T>) => void | Promise<void> }
+  },
 ) {
   if (!onRequest)
     return undefined
 
+  const config = useRuntimeConfig().public.nuxtPrecognition
+  const baseParsers = [] as ValidationErrorParser[]
+
+  if (config.enableServerLaravelErrorParser)
+    baseParsers.push(makeLaravelValidationErrorParser(config))
+
   if (typeof onRequest === 'function')
-    return onPrecognitiveRequestWrapper(onRequest, errorParsers)
+    return onPrecognitiveRequestWrapper(onRequest, config, { errorParsers: [...baseParsers, ...(options?.errorParsers ?? [])], statusHandlers: options?.statusHandlers })
 
   return onRequest.map(
-    middleware => onPrecognitiveRequestWrapper(middleware, errorParsers),
+    middleware => onPrecognitiveRequestWrapper(middleware, config, { errorParsers: [...baseParsers, ...(options?.errorParsers ?? [])], statusHandlers: options?.statusHandlers }),
   )
 }
 
 function onPrecognitiveRequestWrapper<T extends EventHandlerRequest>(
   middleware: _RequestMiddleware<T>,
-  errorParsers: ValidationErrorParser[],
+  config: Config,
+  options: {
+    errorParsers: ValidationErrorParser[]
+    statusHandlers?: { [key: number]: (error: Error, event: H3Event<T>) => void | Promise<void> }
+  },
 ): _RequestMiddleware<T> {
-  const config = useRuntimeConfig().public.nuxtPrecognition
-  const baseParsers = [] as ValidationErrorParser[]
-  if (config.enableServerLaravelErrorParser)
-    baseParsers.push(makeLaravelValidationErrorParser(config))
-
   return async (event) => {
-    if (!hasPrecognitiveRequestsHeader(event.headers, config))
-      return middleware(event)
-
-    const validatingOnly = event.headers.get(config.validateOnlyHeader) ?? ''
-
     try {
       await middleware(event)
     }
     catch (error) {
       if (!(error instanceof Error)) {
-        setResponseHeader(event, 'Content-Type', 'application/json')
-        setResponseHeader(event, config.precognitiveHeader, 'true')
-        setResponseHeader(event, config.validateOnlyHeader, validatingOnly)
-        throw error
+        throw createError({
+          message: 'Unknown server error',
+          statusCode: 500,
+          data: { message: 'Unknown server error' },
+        })
       }
 
-      const errorsData = resolveValidationErrorData(error, [...baseParsers, ...errorParsers])
+      const statusHandler = hasResponse(error)
+        ? options.statusHandlers?.[error.response.status]
+        : undefined
+
+      if (statusHandler) {
+        return statusHandler(error, event)
+      }
+
+      setResponseHeader(event, 'Content-Type', 'application/json')
+
+      const errorsData = resolveValidationErrorData(error, options.errorParsers)
 
       if (!errorsData) {
-        setResponseHeader(event, 'Content-Type', 'application/json')
-        setResponseHeader(event, config.precognitiveHeader, 'true')
-        setResponseHeader(event, config.validateOnlyHeader, validatingOnly)
         throw error
       }
 
-      handleValidationErrorsData(errorsData, event, validatingOnly)
+      handleValidationErrorsData(errorsData, event, config)
     }
   }
 }
@@ -76,11 +93,33 @@ function onPrecognitiveRequestWrapper<T extends EventHandlerRequest>(
 function handleValidationErrorsData<T extends EventHandlerRequest>(
   errorsData: ValidationErrorsData,
   event: H3Event<T>,
-  validatingOnly: string,
+  config: Config,
 ) {
-  const config = useRuntimeConfig().public.nuxtPrecognition
+  setResponseStatus(event, config.errorStatusCode)
+  setResponseHeader(event, 'Content-Type', 'application/json')
 
-  const errors = Object.keys(errorsData.errors).filter(e => validatingOnly.split(config.validatingKeysSeparator).includes(e))
+  if (!event.headers.has(config.precognitiveHeader)) {
+    throw createError({
+      message: errorsData.message,
+      data: errorsData,
+    })
+  }
+
+  setResponseHeader(event, config.precognitiveHeader, 'true')
+
+  const validateOnly = event.headers.get(config.validateOnlyHeader)
+
+  if (!validateOnly) {
+    throw createError({
+      status: config.errorStatusCode,
+      message: errorsData.message,
+      data: errorsData,
+    })
+  }
+
+  setResponseHeader(event, config.validateOnlyHeader, validateOnly)
+
+  const errors = Object.keys(errorsData.errors).filter(e => validateOnly.split(config.validatingKeysSeparator).includes(e))
   if (!errors.length)
     return
 
@@ -90,11 +129,8 @@ function handleValidationErrorsData<T extends EventHandlerRequest>(
     precognitveErrors[key] = Array.isArray(value) ? value : [value]
   })
 
-  setResponseHeader(event, 'Content-Type', 'application/json')
-  setResponseHeader(event, config.precognitiveHeader, 'true')
-  setResponseHeader(event, config.validateOnlyHeader, validatingOnly)
   throw createError<ValidationErrorsData>({
-    statusCode: config.errorStatusCode,
+    status: config.errorStatusCode,
     data: {
       message: errorsData.message,
       errors: precognitveErrors,
@@ -109,7 +145,7 @@ function onPrecognitiveHandler<TRequest extends EventHandlerRequest, TResponse>(
   return (event: H3Event<EventHandlerRequest>) => {
     const config = useRuntimeConfig().public.nuxtPrecognition
 
-    if (!hasPrecognitiveRequestsHeader(event.headers, config))
+    if (event.headers.get(config.precognitiveHeader) !== 'true')
       return handler(event)
 
     setResponseHeader(event, 'Content-Type', 'application/json')
@@ -124,17 +160,30 @@ function onPrecognitiveHandler<TRequest extends EventHandlerRequest, TResponse>(
   }
 }
 
-definePrecognitiveEventHandler.create = function (
-  errorParsers: ValidationErrorParser[],
-): <TRequest extends EventHandlerRequest, TResponse>(
+definePrecognitiveEventHandler.create = function <TRequest extends EventHandlerRequest, TResponse>(
+  options: {
+    errorParsers?: ValidationErrorParser[]
+    statusHandlers?: { [key: number]: (error: Error, event: H3Event<TRequest>) => void | Promise<void> }
+  },
+): (
     handler: EventHandlerObject<TRequest, TResponse>,
-    errorParsers?: ValidationErrorParser[],
+    options?: {
+      errorParsers?: ValidationErrorParser[]
+      statusHandlers?: { [key: number]: (error: Error, event: H3Event<TRequest>) => void | Promise<void> }
+    },
   ) => EventHandler<TRequest, TResponse> {
-  const baseErrorParsers = [...errorParsers]
+  const baseErrorParsers = [...(options.errorParsers ?? [])]
+  const baseStatusHandlers = { ...(options.statusHandlers ?? {}) }
   return <
   TRequest extends EventHandlerRequest,
   TResponse,
-  >(handler: EventHandlerObject<TRequest, TResponse>, errorParsers: ValidationErrorParser[] = []) => definePrecognitiveEventHandler(handler, [...baseErrorParsers, ...errorParsers])
+  >(
+    handler: EventHandlerObject<TRequest, TResponse>,
+    options?: {
+      errorParsers?: ValidationErrorParser[]
+      statusHandlers?: { [key: number]: (error: Error, event: H3Event<TRequest>) => void | Promise<void> }
+    },
+  ) => definePrecognitiveEventHandler(handler, { errorParsers: [...baseErrorParsers, ...(options?.errorParsers ?? [])], statusHandlers: { ...baseStatusHandlers, ...options?.statusHandlers } })
 }
 
 export { definePrecognitiveEventHandler }

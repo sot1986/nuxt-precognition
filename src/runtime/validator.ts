@@ -3,8 +3,8 @@ import type { DebouncedFuncLeading } from 'lodash'
 import defu from 'defu'
 import type { NestedKeyOf } from './types/utils'
 import type { ValidationErrorParser } from './types/core'
-import type { Form, UseFormOptions } from './types/form'
-import { isFile, requestPrecognitiveHeaders, resolveValidationErrorData, makeLaravelValidationErrorParser, makeNuxtValidationErrorParser } from './core'
+import type { ClientStatusHandler, Form, UseFormOptions } from './types/form'
+import { isFile, requestPrecognitiveHeaders, resolveValidationErrorData, makeLaravelValidationErrorParser, makeNuxtValidationErrorParser, hasResponse } from './core'
 import { useNuxtApp, useRuntimeConfig } from '#imports'
 
 export function makeValidator<TData extends object, TResp>(
@@ -14,6 +14,7 @@ export function makeValidator<TData extends object, TResp>(
     validate: DebouncedFuncLeading<(form: Form<TData, TResp>, ...keys: NestedKeyOf<TData>[]) => Promise<void>>
     errorParsers: ValidationErrorParser[]
     setValidateFiles: (value: boolean) => void
+    statusHandlers: Map<number, ClientStatusHandler>
   } {
   const { $precognition } = useNuxtApp()
   const config = useRuntimeConfig().public.nuxtPrecognition
@@ -28,14 +29,22 @@ export function makeValidator<TData extends object, TResp>(
   if (validateOptions.enableClientNuxtErrorParser)
     errorParsers.push(makeNuxtValidationErrorParser(validateOptions))
 
+  const statusHandlers = new Map<number, ClientStatusHandler>([
+    ...$precognition.statusHandlers,
+    ...(validateOptions.statusHandlers ?? new Map()),
+  ])
+
   const validate = debounce(
-    async function (form: Form<TData, TResp>, ...keys: NestedKeyOf<TData>[]) {
+    async function (form: TData & Form<TData, TResp>, ...keys: NestedKeyOf<TData>[]) {
       const headers = requestPrecognitiveHeaders(validateOptions, validateOptions.validationHeaders, keys)
       const data = form.data()
       try {
         const onBefore = (validateOptions?.onBeforeValidation ?? (() => true))(data)
         if (!onBefore)
           return
+
+        form.validating = true
+        form.error = null
 
         const onValidationStart = validateOptions.onValidationStart ?? (() => Promise.resolve())
         await onValidationStart(data)
@@ -52,26 +61,36 @@ export function makeValidator<TData extends object, TResp>(
         )
 
         form.forgetErrors(...keys)
-        const onSuccess = (validateOptions?.onValidationSuccess ?? (() => Promise.resolve()))
-        await onSuccess(data)
+        form.touch(...keys)
+        const onSuccess = (validateOptions?.onValidationSuccess ?? (() => undefined))
+        return onSuccess(data)
       }
       catch (error) {
         const err = error instanceof Error
           ? error
           : new Error('An error occurred while validating the form. Please try again.')
 
+        form.error = err
+
         const errorData = resolveValidationErrorData(err, errorParsers)
 
-        if (errorData)
+        if (errorData) {
           form.setErrors(errorData)
+          form.touch(...keys)
+        }
 
-        const onError = validateOptions?.onValidationError ?? (() => Promise.resolve())
+        const statusHandler = hasResponse(err)
+          ? statusHandlers.get(err.response.status)
+          : undefined
 
-        await onError(err, data, keys)
+        if (statusHandler)
+          return statusHandler(err as Error & { response: Response }, form)
+
+        const onError = validateOptions?.onValidationError ?? (() => undefined)
+        return onError(err, data, keys)
       }
       finally {
         form.validating = false
-        form.touch(...keys)
       }
     },
     validateOptions.validationTimeout,
@@ -85,6 +104,7 @@ export function makeValidator<TData extends object, TResp>(
   return {
     validate,
     errorParsers,
+    statusHandlers,
     setValidateFiles,
   }
 }

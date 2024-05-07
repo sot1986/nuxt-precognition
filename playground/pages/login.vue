@@ -12,18 +12,14 @@ const UserSchema = z.object({
 })
 type User = z.infer<typeof UserSchema>
 
-const newUser: User = {
+const form = useForm((): User => ({
   email: '',
   password: '',
-}
-
-const form = useForm(() => newUser, (body, headers) => $fetch('/api/login', {
+}), (body, headers) => $fetch('/api/login', {
   method: 'POST',
   headers,
   body,
-}), {
-  backendValidation: true,
-})
+}))
 </script>
 
 <template>
@@ -64,7 +60,7 @@ const form = useForm(() => newUser, (body, headers) => $fetch('/api/login', {
                 autocomplete="email"
                 required
                 class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
-                @input="form.validate('email')"
+                @change="form.validate('email')"
               >
               <div
                 v-if="form.valid('email')"

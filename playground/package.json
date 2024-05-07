@@ -8,7 +8,6 @@
     "generate": "nuxi generate"
   },
   "dependencies": {
-    "nuxt": "latest",
-    "zod": "^3.22.4"
+    "nuxt": "latest"
   }
 }

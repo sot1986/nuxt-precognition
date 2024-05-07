@@ -32,6 +32,7 @@ describe('test validator functions', () => {
           parsers: {
             errorParsers: [],
           },
+          statusHandlers: new Map(),
         },
       }),
       useRuntimeConfig: () => ({
@@ -108,7 +109,7 @@ describe('test validator functions', () => {
     })
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await validator.validate({ data: () => ({}), touch: () => {}, forgetErrors: () => {} } as any)
+    await validator.validate({ data: () => ({}), touch: () => {}, forgetErrors: () => {}, setErrors: () => {} } as any)
 
     expect(hook).toEqual([
       'onBeforeValidation',
@@ -121,9 +122,11 @@ describe('test validator functions', () => {
 
   it('validator function intercept error and execute onError', async () => {
     const hook: string[] = []
+    const error = new Error('error') as Error & { response: Response }
+    error.response = new Response(undefined, { status: 422 })
     const cb = () => {
       hook.push('cb')
-      return Promise.reject(new Error('error'))
+      return Promise.reject(error)
     }
 
     const validator = makeValidator(cb, {
@@ -150,7 +153,7 @@ describe('test validator functions', () => {
     })
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await validator.validate({ data: () => ({}), touch: () => {}, forgetErrors: () => {} } as any)
+    await validator.validate({ data: () => ({}), touch: () => {}, forgetErrors: () => {}, setErrors: () => {} } as any)
 
     expect(hook).toEqual([
       'onBeforeValidation',
@@ -172,7 +175,7 @@ describe('test validator functions', () => {
 
     const validator = makeValidator(updateCounter, { clientErrorParsers: errorParsers, validationTimeout: 1000 })
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const fakeForm = { data: () => ({}), touch: () => {}, forgetErrors: () => {} } as any
+    const fakeForm = { data: () => ({}), touch: () => {}, forgetErrors: () => {}, setErrors: () => {} } as any
 
     value = 'a'
     await validator.validate(fakeForm)

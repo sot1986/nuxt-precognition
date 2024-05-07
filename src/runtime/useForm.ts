@@ -1,6 +1,6 @@
 import { cloneDeep } from 'lodash-es'
 import type { Form, UseFormOptions } from './types/form'
-import { getAllNestedKeys, resolveDynamicObject, resolveValidationErrorData } from './core'
+import { getAllNestedKeys, hasResponse, resolveDynamicObject, resolveValidationErrorData } from './core'
 import { makeValidator } from './validator'
 import type { NestedKeyOf } from './types/utils'
 import type { ValidationErrorsData } from './types/core'
@@ -44,12 +44,13 @@ export function useForm<TData extends object, TResp>(
     validate(...keys: NestedKeyOf<TData>[]) {
       if (form.validating)
         return form
-      form.validating = true
+
       validator.validate(form, ...keys)
       return form
     },
     reset() {
       Object.assign(this, getInitialData())
+      form.error = null
       form.errors = {}
       form.validatedKeys = []
       return form
@@ -66,6 +67,7 @@ export function useForm<TData extends object, TResp>(
           return
 
         form.processing = true
+        form.error = null
 
         if (o?.onStart)
           await o.onStart(data)
@@ -76,15 +78,27 @@ export function useForm<TData extends object, TResp>(
           await o.onSuccess(resp, data)
       }
       catch (error) {
-        const e = error instanceof Error ? error : new Error('Invalid form')
+        const err = error instanceof Error ? error : new Error('Invalid form')
 
-        const errorsData = resolveValidationErrorData(e, validator.errorParsers)
+        form.error = err
 
-        if (errorsData)
+        const errorsData = resolveValidationErrorData(err, validator.errorParsers)
+
+        if (errorsData) {
           form.setErrors(errorsData)
+          form.touch()
+        }
+
+        const statusHandler = hasResponse(err)
+          ? validator.statusHandlers.get(err.response.status)
+          : undefined
+
+        if (statusHandler) {
+          return statusHandler(err as Error & { response: Response }, form)
+        }
 
         if (o?.onError)
-          await o?.onError(e, data)
+          return o.onError(err, data)
       }
       finally {
         form.processing = false
