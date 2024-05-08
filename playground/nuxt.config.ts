@@ -1,8 +1,8 @@
 export default defineNuxtConfig({
   modules: ['../src/module'],
-  nuxtPrecognition: {
+  precognition: {
     backendValidation: true,
-    enableClientNuxtErrorParser: true,
+    enableNuxtClientErrorParser: true,
   },
   devtools: { enabled: true },
   css: ['~/assets/css/main.css'],

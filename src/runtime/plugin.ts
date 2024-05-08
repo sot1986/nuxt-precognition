@@ -2,7 +2,7 @@ import type { ValidationErrorParser } from './types/core'
 import type { ClientStatusHandlers } from './types/form'
 import { defineNuxtPlugin } from '#imports'
 
-export default defineNuxtPlugin((_nuxtApp) => {
+export default defineNuxtPlugin(() => {
   const errorParsers: ValidationErrorParser[] = []
 
   const statusHandlers = {} as ClientStatusHandlers
@@ -10,9 +10,7 @@ export default defineNuxtPlugin((_nuxtApp) => {
   return {
     provide: {
       precognition: {
-        parsers: {
-          errorParsers,
-        },
+        errorParsers,
         statusHandlers,
       },
     },

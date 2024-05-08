@@ -5,8 +5,8 @@ export default defineNuxtConfig({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     MyModule as any,
   ],
-  nuxtPrecognition: {
-    enableClientNuxtErrorParser: true,
+  precognition: {
+    enableNuxtClientErrorParser: true,
   },
   plugins: [
     {

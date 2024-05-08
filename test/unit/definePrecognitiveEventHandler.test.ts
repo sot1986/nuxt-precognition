@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { defineEventHandler, setResponseHeader, createError, setResponseStatus } from 'h3'
 
 import { definePrecognitiveEventHandler } from '../../src/runtime/server/definePrecognitiveEventHandler'
 
@@ -7,7 +8,7 @@ describe('test definePrecognitiveEventHandler', () => {
     vi.mock('#imports', () => ({
       useRuntimeConfig: () => ({
         public: {
-          nuxtPrecognition: {
+          precognition: {
             precognitiveHeader: 'X-Precognitive',
             successfulHeader: 'X-Precognitive-Successful',
             validateOnlyHeader: 'X-Precognitive-Validate-Only',
@@ -17,12 +18,16 @@ describe('test definePrecognitiveEventHandler', () => {
             backendValidation: true,
             successValidationStatusCode: 204,
             validateFiles: false,
-            enableClientLaravelErrorParser: true,
-            enableClientNuxtErrorParser: true,
-            enableServerLaravelErrorParser: true,
+            enableLaravelClientErrorParser: true,
+            enableNuxtClientErrorParser: true,
+            enableLaravelServerErrorParser: true,
           },
         },
       }),
+      defineEventHandler,
+      setResponseHeader,
+      createError,
+      setResponseStatus,
     }))
   })
 

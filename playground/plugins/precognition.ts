@@ -4,7 +4,7 @@ import { defineNuxtPlugin, useNuxtApp } from '#imports'
 export default defineNuxtPlugin(() => {
   const { $precognition } = useNuxtApp()
 
-  $precognition.parsers.errorParsers.push(
+  $precognition.errorParsers.push(
     (error) => {
       if (error instanceof ZodError) {
         const errors = {} as Record<string, string[]>

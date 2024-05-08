@@ -14,9 +14,9 @@ describe('test validator functions', () => {
     backendValidation: true,
     successValidationStatusCode: 204,
     validateFiles: false,
-    enableClientLaravelErrorParser: true,
-    enableClientNuxtErrorParser: true,
-    enableServerLaravelErrorParser: true,
+    enableLaravelClientErrorParser: true,
+    enableNuxtClientErrorParser: true,
+    enableLaravelServerErrorParser: true,
   }
 
   const errorParsers = [
@@ -29,15 +29,13 @@ describe('test validator functions', () => {
     vi.mock('#imports', () => ({
       useNuxtApp: () => ({
         $precognition: {
-          parsers: {
-            errorParsers: [],
-          },
+          errorParsers: [],
           statusHandlers: new Map(),
         },
       }),
       useRuntimeConfig: () => ({
         public: {
-          nuxtPrecognition: {
+          precognition: {
             precognitiveHeader: 'X-Precognitive',
             successfulHeader: 'X-Precognitive-Successful',
             validateOnlyHeader: 'X-Precognitive-Validate-Only',
@@ -47,9 +45,9 @@ describe('test validator functions', () => {
             backendValidation: true,
             successValidationStatusCode: 204,
             validateFiles: false,
-            enableClientLaravelErrorParser: true,
-            enableClientNuxtErrorParser: true,
-            enableServerLaravelErrorParser: true,
+            enableLaravelClientErrorParser: true,
+            enableNuxtClientErrorParser: true,
+            enableLaravelServerErrorParser: true,
           },
         },
       }),

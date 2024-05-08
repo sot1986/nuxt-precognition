@@ -1,11 +1,10 @@
 import type { EventHandler, EventHandlerObject, EventHandlerRequest, H3Event, _RequestMiddleware } from 'h3'
-import { defineEventHandler, setResponseHeader, createError, setResponseStatus } from 'h3'
 import type { ValidationErrorParser, ValidationErrorsData } from '../types/core'
 import { hasResponse, makeLaravelValidationErrorParser, resolveValidationErrorData } from '../core'
 import type { Config } from '../types/config'
 import type { ServerStatusHandlers } from '../types/eventHandler'
 import type { ErrorStatusCode } from '../types/utils'
-import { useRuntimeConfig } from '#imports'
+import { useRuntimeConfig, defineEventHandler, setResponseHeader, createError, setResponseStatus } from '#imports'
 
 function definePrecognitiveEventHandler<
 TRequest extends EventHandlerRequest,
@@ -34,18 +33,30 @@ function onPrecognitiveRequest<T extends EventHandlerRequest>(
   if (!onRequest)
     return undefined
 
-  const config = useRuntimeConfig().public.nuxtPrecognition
+  const config = useRuntimeConfig().public.precognition
   const baseParsers = [] as ValidationErrorParser[]
 
-  if (config.enableServerLaravelErrorParser)
+  if (config.enableLaravelServerErrorParser)
     baseParsers.push(makeLaravelValidationErrorParser(config))
 
   if (typeof onRequest === 'function')
-    return onPrecognitiveRequestWrapper(onRequest, config, { errorParsers: [...baseParsers, ...(options?.errorParsers ?? [])], statusHandlers: options?.statusHandlers })
+    return onPrecognitiveRequestWrapper(
+      onRequest,
+      config,
+      {
+        errorParsers: [...baseParsers, ...(options?.errorParsers ?? [])],
+        statusHandlers: options?.statusHandlers,
+      },
+    )
 
-  return onRequest.map(
-    middleware => onPrecognitiveRequestWrapper(middleware, config, { errorParsers: [...baseParsers, ...(options?.errorParsers ?? [])], statusHandlers: options?.statusHandlers }),
-  )
+  return onRequest.map(middleware => onPrecognitiveRequestWrapper(
+    middleware,
+    config,
+    {
+      errorParsers: [...baseParsers, ...(options?.errorParsers ?? [])],
+      statusHandlers: options?.statusHandlers,
+    },
+  ))
 }
 
 function onPrecognitiveRequestWrapper<T extends EventHandlerRequest>(
@@ -143,7 +154,7 @@ function onPrecognitiveHandler<TRequest extends EventHandlerRequest, TResponse>(
   handler: EventHandler<TRequest, TResponse>,
 ): EventHandler<TRequest, TResponse> {
   return (event: H3Event<EventHandlerRequest>) => {
-    const config = useRuntimeConfig().public.nuxtPrecognition
+    const config = useRuntimeConfig().public.precognition
 
     if (event.headers.get(config.precognitiveHeader) !== 'true')
       return handler(event)

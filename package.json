@@ -23,6 +23,7 @@
     "dev:build": "nuxi build playground",
     "dev:prepare": "nuxt-module-build build --stub && nuxt-module-build prepare && nuxi prepare playground",
     "release": "npm run lint && npm run test && npm run prepack && changelogen --release && npm publish && git push --follow-tags",
+    "release:locally": "npm run lint && npm run test && npm run prepack && npm pack && mv ./nuxt-precognition-*.tgz ../Released",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "test": "vitest run",
@@ -31,7 +32,6 @@
   "dependencies": {
     "@nuxt/kit": "^3.11.1",
     "defu": "^6.1.4",
-    "h3": "^1.11.1",
     "lodash-es": "^4.17.21"
   },
   "devDependencies": {
@@ -46,6 +46,7 @@
     "autoprefixer": "^10.4.19",
     "changelogen": "^0.5.5",
     "eslint": "^8.57.0",
+    "h3": "^1.11.1",
     "nuxt": "^3.11.1",
     "playwright-core": "^1.43.1",
     "postcss": "^8.4.38",

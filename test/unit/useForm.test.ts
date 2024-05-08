@@ -28,9 +28,9 @@ describe ('test useForm composable', () => {
     backendValidation: true,
     successValidationStatusCode: 204,
     validateFiles: false,
-    enableClientLaravelErrorParser: true,
-    enableClientNuxtErrorParser: true,
-    enableServerLaravelErrorParser: true,
+    enableLaravelClientErrorParser: true,
+    enableNuxtClientErrorParser: true,
+    enableLaravelServerErrorParser: true,
   }
 
   function makeNuxtPrecognitiveError(errors: Record<string, string | string[]> = {}): NuxtPrecognitiveError {
@@ -47,9 +47,7 @@ describe ('test useForm composable', () => {
     vi.mock('#imports', () => ({
       useNuxtApp: () => ({
         $precognition: {
-          parsers: {
-            errorParsers: [],
-          },
+          errorParsers: [],
           statusHandlers: {
             401: (error, form) => {
               form.error = error
@@ -64,7 +62,7 @@ describe ('test useForm composable', () => {
       }),
       useRuntimeConfig: () => ({
         public: {
-          nuxtPrecognition: {
+          precognition: {
             precognitiveHeader: 'X-Precognitive',
             successfulHeader: 'X-Precognitive-Successful',
             validateOnlyHeader: 'X-Precognitive-Validate-Only',
@@ -74,9 +72,9 @@ describe ('test useForm composable', () => {
             backendValidation: true,
             successValidationStatusCode: 204,
             validateFiles: false,
-            enableClientLaravelErrorParser: true,
-            enableClientNuxtErrorParser: true,
-            enableServerLaravelErrorParser: true,
+            enableLaravelClientErrorParser: true,
+            enableNuxtClientErrorParser: true,
+            enableLaravelServerErrorParser: true,
           },
         },
       }),

@@ -8,7 +8,7 @@ export interface ModuleOptions extends Config {}
 export default defineNuxtModule<ModuleOptions>({
   meta: {
     name: 'nuxt-precognition',
-    configKey: 'nuxtPrecognition',
+    configKey: 'precognition',
     compatibility: {
       nuxt: '^3.9.0',
     },
@@ -24,13 +24,13 @@ export default defineNuxtModule<ModuleOptions>({
     validateFiles: false,
     errorStatusCode: 422,
     successValidationStatusCode: 204,
-    enableClientNuxtErrorParser: false,
-    enableClientLaravelErrorParser: false,
-    enableServerLaravelErrorParser: false,
+    enableNuxtClientErrorParser: false,
+    enableLaravelClientErrorParser: false,
+    enableLaravelServerErrorParser: false,
   },
   setup(options, nuxt) {
-    nuxt.options.runtimeConfig.public.nuxtPrecognition = defu(
-      nuxt.options.runtimeConfig.public.nuxtPrecognition as Partial<ModuleOptions>,
+    nuxt.options.runtimeConfig.public.precognition = defu(
+      nuxt.options.runtimeConfig.public.precognition as Partial<ModuleOptions>,
       {
         validationTimeout: options.validationTimeout,
         backendValidation: options.backendValidation,
@@ -41,9 +41,9 @@ export default defineNuxtModule<ModuleOptions>({
         validateFiles: options.validateFiles,
         errorStatusCode: options.errorStatusCode,
         successValidationStatusCode: options.successValidationStatusCode,
-        enableClientNuxtErrorParser: options.enableClientNuxtErrorParser,
-        enableClientLaravelErrorParser: options.enableClientLaravelErrorParser,
-        enableServerLaravelErrorParser: options.enableServerLaravelErrorParser,
+        enableNuxtClientErrorParser: options.enableNuxtClientErrorParser,
+        enableLaravelClientErrorParser: options.enableLaravelClientErrorParser,
+        enableLaravelServerErrorParser: options.enableLaravelServerErrorParser,
       },
     )
 
@@ -75,9 +75,7 @@ export default defineNuxtModule<ModuleOptions>({
         '',
         'interface NuxtPrecognition {',
         '  $precognition: {',
-        '    parsers: {',
-        '      errorParsers: ValidationErrorParser[]',
-        '    },',
+        '    errorParsers: ValidationErrorParser[],',
         '    statusHandlers: ClientStatusHandlers',
         '  }',
         '}',

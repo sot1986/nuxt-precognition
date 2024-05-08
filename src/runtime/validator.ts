@@ -17,16 +17,16 @@ export function makeValidator<TData extends object, TResp>(
     statusHandlers: ClientStatusHandlers
   } {
   const { $precognition } = useNuxtApp()
-  const config = useRuntimeConfig().public.nuxtPrecognition
+  const config = useRuntimeConfig().public.precognition
   const validateOptions = defu(options, config)
 
   const errorParsers = [
-    ...$precognition.parsers.errorParsers,
+    ...$precognition.errorParsers,
     ...(validateOptions?.clientErrorParsers ?? []),
   ]
-  if (validateOptions.enableClientLaravelErrorParser)
+  if (validateOptions.enableLaravelClientErrorParser)
     errorParsers.push(makeLaravelValidationErrorParser(validateOptions))
-  if (validateOptions.enableClientNuxtErrorParser)
+  if (validateOptions.enableNuxtClientErrorParser)
     errorParsers.push(makeNuxtValidationErrorParser(validateOptions))
 
   const statusHandlers = { ...$precognition.statusHandlers, ...options?.statusHandlers }
