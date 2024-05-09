@@ -1,10 +1,24 @@
 {
   "name": "nuxt-precognition",
   "type": "module",
-  "version": "1.0.0",
-  "description": "My new Nuxt module",
+  "version": "0.0.1",
+  "description": "Nuxt module implementing Precognition protocol (inspired by official Laravel Precognition) for backend precognitive validation.",
+  "author": {
+    "name": "sot1986",
+    "email": "sot@8dplus.com"
+  },
   "license": "MIT",
-  "repository": "your-org/nuxt-precognition",
+  "homepage": "https://github.com/sot1986/nuxt-precognition",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sot1986/nuxt-laravel-precognition"
+  },
+  "keywords": [
+    "precognition",
+    "nuxt",
+    "laravel",
+    "zod"
+  ],
   "exports": {
     ".": {
       "types": "./dist/types.d.ts",

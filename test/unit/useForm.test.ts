@@ -18,25 +18,24 @@ describe ('test useForm composable', () => {
     avatar: null as Blob | null,
   })
 
-  const config: Config = {
-    precognitiveHeader: 'X-Precognitive',
-    successfulHeader: 'X-Precognitive-Successful',
-    validateOnlyHeader: 'X-Precognitive-Validate-Only',
-    errorStatusCode: 422,
-    validatingKeysSeparator: ',',
-    validationTimeout: 1000,
-    backendValidation: true,
-    successValidationStatusCode: 204,
-    validateFiles: false,
-    enableLaravelClientErrorParser: true,
-    enableNuxtClientErrorParser: true,
-    enableLaravelServerErrorParser: true,
-  }
+  // const config: Config = {
+  //   precognitiveHeader: 'Precognition',
+  //   successfulHeader: 'Precognition-Successful',
+  //   validateOnlyHeader: 'Precognition-Validate-Only',
+  //   errorStatusCode: 422,
+  //   validationTimeout: 1000,
+  //   backendValidation: true,
+  //   successValidationStatusCode: 204,
+  //   validateFiles: false,
+  //   enableLaravelClientErrorParser: true,
+  //   enableNuxtClientErrorParser: true,
+  //   enableLaravelServerErrorParser: true,
+  // }
 
   function makeNuxtPrecognitiveError(errors: Record<string, string | string[]> = {}): NuxtPrecognitiveError {
     const headers = new Headers()
-    headers.set(config.precognitiveHeader, 'true')
-    const response = new Response(null, { headers, status: config.errorStatusCode }) as NuxtPrecognitiveErrorResponse
+    headers.set('Precognition', 'true')
+    const response = new Response(null, { headers, status: 422 }) as NuxtPrecognitiveErrorResponse
     response._data = { data: { message: 'error', errors } }
     const error = new Error('error') as NuxtPrecognitiveError
     error.response = response
@@ -63,19 +62,13 @@ describe ('test useForm composable', () => {
       useRuntimeConfig: () => ({
         public: {
           precognition: {
-            precognitiveHeader: 'X-Precognitive',
-            successfulHeader: 'X-Precognitive-Successful',
-            validateOnlyHeader: 'X-Precognitive-Validate-Only',
-            errorStatusCode: 422,
-            validatingKeysSeparator: ',',
             validationTimeout: 1000,
             backendValidation: true,
-            successValidationStatusCode: 204,
             validateFiles: false,
             enableLaravelClientErrorParser: true,
             enableNuxtClientErrorParser: true,
             enableLaravelServerErrorParser: true,
-          },
+          } as Config,
         },
       }),
       reactive,
@@ -193,8 +186,8 @@ describe ('test useForm composable', () => {
     }
 
     async function cb(data: typeof initialData, headers: Headers) {
-      expect(headers.get('X-Precognitive')).toBe('true')
-      expect(headers.get('X-Precognitive-Validate-Only')).toBe(expects.validateOnly)
+      expect(headers.get('Precognition')).toBe('true')
+      expect(headers.get('Precognition-Validate-Only')).toBe(expects.validateOnly)
       expects.data.keys.forEach((key, i) => {
         expect(data[key]).toEqual(expects.data.values[i])
       })
@@ -264,9 +257,9 @@ describe ('test useForm composable', () => {
     }
 
     async function cb(data: typeof initialData, headers: Headers) {
-      expect(headers.get('X-Precognitive')).toBe('true')
+      expect(headers.get('Precognition')).toBe('true')
       if (expects.validateOnly)
-        expect(headers.get('X-Precognitive-Validate-Only')).toBe(expects.validateOnly)
+        expect(headers.get('Precognition-Validate-Only')).toBe(expects.validateOnly)
       expects.data.keys.forEach((key, i) => {
         expect(data[key]).toEqual(expects.data.values[i])
       })
@@ -327,8 +320,8 @@ describe ('test useForm composable', () => {
     const form = useForm(initialData, cb, { validateFiles: true })
 
     expects.expectation = (data, headers) => {
-      expect(headers.get('X-Precognitive')).toBe('true')
-      expect(headers.get('X-Precognitive-Validate-Only')).toBe('avatar')
+      expect(headers.get('Precognition')).toBe('true')
+      expect(headers.get('Precognition-Validate-Only')).toBe('avatar')
       expect(data.name).toBe('John Doe')
       expect(data.avatar).toBeInstanceOf(Blob)
     }
@@ -360,8 +353,8 @@ describe ('test useForm composable', () => {
     const form = useForm(initialData, cb, { validateFiles: false })
 
     expects.expectation = (data, headers) => {
-      expect(headers.get('X-Precognitive')).toBe('true')
-      expect(headers.get('X-Precognitive-Validate-Only')).toBe('avatar')
+      expect(headers.get('Precognition')).toBe('true')
+      expect(headers.get('Precognition-Validate-Only')).toBe('avatar')
       expect(data.name).toBe('John Doe')
       expect(data.avatar).toBeInstanceOf(Blob)
     }

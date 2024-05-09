@@ -1,4 +1,5 @@
 export default defineNuxtPlugin((app) => {
+  const { $precognition } = useNuxtApp()
   const token = useCookie('XSRF-TOKEN')
 
   const api = $fetch.create({
@@ -15,7 +16,9 @@ export default defineNuxtPlugin((app) => {
         options.headers = headers
       }
     },
-
+    onResponse: (context) => {
+      $precognition.assertSuccessfulPrecognitiveResponses(context)
+    },
   })
 
   async function fetchSanctumToken() {

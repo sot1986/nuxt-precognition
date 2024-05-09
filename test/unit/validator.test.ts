@@ -5,11 +5,10 @@ import { makeLaravelValidationErrorParser, makeNuxtValidationErrorParser } from 
 
 describe('test validator functions', () => {
   const config: Config = {
-    precognitiveHeader: 'X-Precognitive',
-    successfulHeader: 'X-Precognitive-Successful',
-    validateOnlyHeader: 'X-Precognitive-Validate-Only',
+    precognitiveHeader: 'Precognition',
+    successfulHeader: 'Precognition-Successful',
+    validateOnlyHeader: 'Precognition-Validate-Only',
     errorStatusCode: 422,
-    validatingKeysSeparator: ',',
     validationTimeout: 1000,
     backendValidation: true,
     successValidationStatusCode: 204,
@@ -20,8 +19,8 @@ describe('test validator functions', () => {
   }
 
   const errorParsers = [
-    makeLaravelValidationErrorParser(config),
-    makeNuxtValidationErrorParser(config),
+    makeLaravelValidationErrorParser(),
+    makeNuxtValidationErrorParser(),
   ]
 
   beforeEach(() => {
@@ -36,11 +35,10 @@ describe('test validator functions', () => {
       useRuntimeConfig: () => ({
         public: {
           precognition: {
-            precognitiveHeader: 'X-Precognitive',
-            successfulHeader: 'X-Precognitive-Successful',
-            validateOnlyHeader: 'X-Precognitive-Validate-Only',
+            precognitiveHeader: 'Precognition',
+            successfulHeader: 'Precognition-Successful',
+            validateOnlyHeader: 'Precognition-Validate-Only',
             errorStatusCode: 422,
-            validatingKeysSeparator: ',',
             validationTimeout: 1000,
             backendValidation: true,
             successValidationStatusCode: 204,

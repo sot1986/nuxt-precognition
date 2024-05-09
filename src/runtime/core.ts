@@ -1,13 +1,13 @@
 import type { ValidationErrors, ValidationErrorsData, ValidationErrorParser } from './types/core'
 import type { NestedKeyOf } from './types/utils'
-import type { Config } from './types/config'
+import { createError } from '#imports'
 
 export function hasResponse(error: Error): error is Error & { response: Response } {
   return 'response' in error && error.response instanceof Response
 }
 
-function hasValidationStatusCode(response: Response, config: Config): boolean {
-  return response.status === config.errorStatusCode
+function hasValidationStatusCode(response: Response): boolean {
+  return response.status === 422
 }
 
 function hasNuxtValidationErrorsData(response: Response): response is Response & { _data: {
@@ -40,11 +40,11 @@ export function resolveDynamicObject<T extends object>(object: T | (() => T)): T
   return typeof object === 'function' ? object() : object
 }
 
-export function requestPrecognitiveHeaders(config: Config, headers?: HeadersInit, keys?: string[]): Headers {
+export function requestPrecognitiveHeaders(headers?: HeadersInit, keys?: string[]): Headers {
   const h = new Headers(headers)
-  h.set(config.precognitiveHeader, 'true')
+  h.set('Precognition', 'true')
   if (keys?.length)
-    h.set(config.validateOnlyHeader, keys.join(config.validatingKeysSeparator))
+    h.set('Precognition-Validate-Only', keys.join(','))
   return h
 }
 
@@ -83,10 +83,22 @@ export function resolveValidationErrorData(error: Error, parsers: ValidationErro
   )
 }
 
-export function makeNuxtValidationErrorParser(config: Config): ValidationErrorParser {
-  return error => (hasResponse(error) && hasValidationStatusCode(error.response, config) && hasNuxtValidationErrorsData(error.response)) ? error.response._data.data : null
+export function makeNuxtValidationErrorParser(): ValidationErrorParser {
+  return error => (hasResponse(error) && hasValidationStatusCode(error.response) && hasNuxtValidationErrorsData(error.response)) ? error.response._data.data : null
 }
 
-export function makeLaravelValidationErrorParser(config: Config): ValidationErrorParser {
-  return error => (hasResponse(error) && hasValidationStatusCode(error.response, config) && hasLaravelValidationErrorsData(error.response)) ? error.response._data : null
+export function makeLaravelValidationErrorParser(): ValidationErrorParser {
+  return error => (hasResponse(error) && hasValidationStatusCode(error.response) && hasLaravelValidationErrorsData(error.response)) ? error.response._data : null
+}
+
+export function assertSuccessfulPrecognitiveResponses(
+  ctx: { options: { headers?: HeadersInit }, response: Response },
+) {
+  const reqHeaders = new Headers(ctx.options.headers)
+  if (reqHeaders.get('Precognition') !== 'true') {
+    return
+  }
+  if (reqHeaders.get('Precognition-Success') !== 'true' || ctx.response.status !== 204) {
+    throw createError({ message: 'Did not receive a Precognition response. Ensure you have the Precognition middleware in place for the route and Precognitive headers have been enabled in config/cors.php.', statusCode: 500 })
+  }
 }

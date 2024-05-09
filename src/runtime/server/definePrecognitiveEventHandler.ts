@@ -37,7 +37,7 @@ function onPrecognitiveRequest<T extends EventHandlerRequest>(
   const baseParsers = [] as ValidationErrorParser[]
 
   if (config.enableLaravelServerErrorParser)
-    baseParsers.push(makeLaravelValidationErrorParser(config))
+    baseParsers.push(makeLaravelValidationErrorParser())
 
   if (typeof onRequest === 'function')
     return onPrecognitiveRequestWrapper(
@@ -106,31 +106,31 @@ function handleValidationErrorsData<T extends EventHandlerRequest>(
   event: H3Event<T>,
   config: Config,
 ) {
-  setResponseStatus(event, config.errorStatusCode)
+  setResponseStatus(event, 422)
   setResponseHeader(event, 'Content-Type', 'application/json')
 
-  if (!event.headers.has(config.precognitiveHeader)) {
+  if (!event.headers.has('Precognition')) {
     throw createError({
       message: errorsData.message,
       data: errorsData,
     })
   }
 
-  setResponseHeader(event, config.precognitiveHeader, 'true')
+  setResponseHeader(event, 'Precognition', 'true')
 
-  const validateOnly = event.headers.get(config.validateOnlyHeader)
+  const validateOnly = event.headers.get('Precognition-Validate-Only')
 
   if (!validateOnly) {
     throw createError({
-      status: config.errorStatusCode,
+      status: 422,
       message: errorsData.message,
       data: errorsData,
     })
   }
 
-  setResponseHeader(event, config.validateOnlyHeader, validateOnly)
+  setResponseHeader(event, 'Precognition-Validate-Only', validateOnly)
 
-  const errors = Object.keys(errorsData.errors).filter(e => validateOnly.split(config.validatingKeysSeparator).includes(e))
+  const errors = Object.keys(errorsData.errors).filter(e => validateOnly.split(',').includes(e))
   if (!errors.length)
     return
 
@@ -141,7 +141,7 @@ function handleValidationErrorsData<T extends EventHandlerRequest>(
   })
 
   throw createError<ValidationErrorsData>({
-    status: config.errorStatusCode,
+    status: 422,
     data: {
       message: errorsData.message,
       errors: precognitveErrors,
@@ -156,16 +156,16 @@ function onPrecognitiveHandler<TRequest extends EventHandlerRequest, TResponse>(
   return (event: H3Event<EventHandlerRequest>) => {
     const config = useRuntimeConfig().public.precognition
 
-    if (event.headers.get(config.precognitiveHeader) !== 'true')
+    if (event.headers.get('Precognition') !== 'true')
       return handler(event)
 
     setResponseHeader(event, 'Content-Type', 'application/json')
-    setResponseHeader(event, config.precognitiveHeader, 'true')
-    setResponseHeader(event, config.successfulHeader, 'true')
+    setResponseHeader(event, 'Precognition', 'true')
+    setResponseHeader(event, 'Precognition-Success', 'true')
 
-    const validateOnlyKey = event.headers.get(config.validateOnlyHeader)
+    const validateOnlyKey = event.headers.get('Precognition-Validate-Only')
     if (validateOnlyKey)
-      setResponseHeader(event, config.validateOnlyHeader, validateOnlyKey)
+      setResponseHeader(event, 'Precognition-Validate-Only', validateOnlyKey)
     setResponseStatus(event, config.successValidationStatusCode)
     return null as unknown as TResponse
   }

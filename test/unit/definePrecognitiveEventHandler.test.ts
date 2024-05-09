@@ -9,11 +9,10 @@ describe('test definePrecognitiveEventHandler', () => {
       useRuntimeConfig: () => ({
         public: {
           precognition: {
-            precognitiveHeader: 'X-Precognitive',
-            successfulHeader: 'X-Precognitive-Successful',
-            validateOnlyHeader: 'X-Precognitive-Validate-Only',
+            precognitiveHeader: 'Precognition',
+            successfulHeader: 'Precognition-Successful',
+            validateOnlyHeader: 'Precognition-Validate-Only',
             errorStatusCode: 422,
-            validatingKeysSeparator: ',',
             validationTimeout: 1000,
             backendValidation: true,
             successValidationStatusCode: 204,

@@ -25,14 +25,14 @@ export function makeValidator<TData extends object, TResp>(
     ...(validateOptions?.clientErrorParsers ?? []),
   ]
   if (validateOptions.enableLaravelClientErrorParser)
-    errorParsers.push(makeLaravelValidationErrorParser(validateOptions))
+    errorParsers.push(makeLaravelValidationErrorParser())
   if (validateOptions.enableNuxtClientErrorParser)
-    errorParsers.push(makeNuxtValidationErrorParser(validateOptions))
+    errorParsers.push(makeNuxtValidationErrorParser())
 
   const statusHandlers = { ...$precognition.statusHandlers, ...options?.statusHandlers }
   const validate = debounce(
     async function (form: TData & Form<TData, TResp>, ...keys: NestedKeyOf<TData>[]) {
-      const headers = requestPrecognitiveHeaders(validateOptions, validateOptions.validationHeaders, keys)
+      const headers = requestPrecognitiveHeaders(validateOptions.validationHeaders, keys)
       const data = form.data()
       try {
         const onBefore = (validateOptions?.onBeforeValidation ?? (() => true))(data)
@@ -55,7 +55,6 @@ export function makeValidator<TData extends object, TResp>(
           (validateOptions.validateFiles) ? data : withoutFiles(data),
           headers,
         )
-
         form.forgetErrors(...keys)
         form.touch(...keys)
         const onSuccess = (validateOptions?.onValidationSuccess ?? (() => undefined))
