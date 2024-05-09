@@ -1,20 +1,10 @@
-import { describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { getAllNestedKeys, isFile, resolveDynamicObject, requestPrecognitiveHeaders, resolveValidationErrorData, makeLaravelValidationErrorParser, makeNuxtValidationErrorParser } from '../../src/runtime/core'
 
 import type { LaravelPrecognitiveError, LaravelPrecognitiveErrorResponse, NuxtPrecognitiveError, NuxtPrecognitiveErrorResponse } from './types'
-// import type { Config } from '~/src/runtime/types/config'
 
 describe('test core functions', () => {
-  // const config: Config = {
-  //   validationTimeout: 1000,
-  //   backendValidation: true,
-  //   validateFiles: false,
-  //   enableLaravelClientErrorParser: true,
-  //   enableNuxtClientErrorParser: true,
-  //   enableLaravelServerErrorParser: true,
-  // }
-
   function makeNuxtPrecognitiveError(errors: Record<string, string | string[]> = {}): NuxtPrecognitiveError {
     const headers = new Headers()
     headers.set('Precognition', 'true')
@@ -34,6 +24,17 @@ describe('test core functions', () => {
     error.response = response
     return error
   }
+
+  beforeEach(() => {
+    vi.mock('#imports', () => ({
+      createError: (payload: string | { message: string, statusCode?: number }) => {
+        if (typeof payload === 'string')
+          return new Error(payload)
+
+        return new Error(payload.message)
+      },
+    }))
+  })
 
   it.each([
     [() => ({ a: 1 }), { a: 1 }],

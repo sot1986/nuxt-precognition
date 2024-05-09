@@ -18,20 +18,6 @@ describe ('test useForm composable', () => {
     avatar: null as Blob | null,
   })
 
-  // const config: Config = {
-  //   precognitiveHeader: 'Precognition',
-  //   successfulHeader: 'Precognition-Successful',
-  //   validateOnlyHeader: 'Precognition-Validate-Only',
-  //   errorStatusCode: 422,
-  //   validationTimeout: 1000,
-  //   backendValidation: true,
-  //   successValidationStatusCode: 204,
-  //   validateFiles: false,
-  //   enableLaravelClientErrorParser: true,
-  //   enableNuxtClientErrorParser: true,
-  //   enableLaravelServerErrorParser: true,
-  // }
-
   function makeNuxtPrecognitiveError(errors: Record<string, string | string[]> = {}): NuxtPrecognitiveError {
     const headers = new Headers()
     headers.set('Precognition', 'true')

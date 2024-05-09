@@ -9,13 +9,8 @@ describe('test definePrecognitiveEventHandler', () => {
       useRuntimeConfig: () => ({
         public: {
           precognition: {
-            precognitiveHeader: 'Precognition',
-            successfulHeader: 'Precognition-Successful',
-            validateOnlyHeader: 'Precognition-Validate-Only',
-            errorStatusCode: 422,
             validationTimeout: 1000,
             backendValidation: true,
-            successValidationStatusCode: 204,
             validateFiles: false,
             enableLaravelClientErrorParser: true,
             enableNuxtClientErrorParser: true,

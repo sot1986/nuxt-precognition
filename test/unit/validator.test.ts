@@ -1,23 +1,8 @@
 import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest'
 import { makeValidator, withoutFiles } from '../../src/runtime/validator'
-import type { Config } from '../../src/runtime/types/config'
 import { makeLaravelValidationErrorParser, makeNuxtValidationErrorParser } from '../../src/runtime/core'
 
 describe('test validator functions', () => {
-  const config: Config = {
-    precognitiveHeader: 'Precognition',
-    successfulHeader: 'Precognition-Successful',
-    validateOnlyHeader: 'Precognition-Validate-Only',
-    errorStatusCode: 422,
-    validationTimeout: 1000,
-    backendValidation: true,
-    successValidationStatusCode: 204,
-    validateFiles: false,
-    enableLaravelClientErrorParser: true,
-    enableNuxtClientErrorParser: true,
-    enableLaravelServerErrorParser: true,
-  }
-
   const errorParsers = [
     makeLaravelValidationErrorParser(),
     makeNuxtValidationErrorParser(),
@@ -35,13 +20,8 @@ describe('test validator functions', () => {
       useRuntimeConfig: () => ({
         public: {
           precognition: {
-            precognitiveHeader: 'Precognition',
-            successfulHeader: 'Precognition-Successful',
-            validateOnlyHeader: 'Precognition-Validate-Only',
-            errorStatusCode: 422,
             validationTimeout: 1000,
             backendValidation: true,
-            successValidationStatusCode: 204,
             validateFiles: false,
             enableLaravelClientErrorParser: true,
             enableNuxtClientErrorParser: true,
