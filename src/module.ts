@@ -5,10 +5,6 @@ import type { Config } from './runtime/types/config'
 // Module options TypeScript interface definition
 export interface ModuleOptions extends Config {}
 
-export type { ValidationErrorParser } from './runtime/types/core'
-export type { ClientStatusHandlers } from './runtime/types/form'
-export type { ServerStatusHandlers } from './runtime/types/eventHandler'
-
 export default defineNuxtModule<ModuleOptions>({
   meta: {
     name: 'nuxt-precognition',
