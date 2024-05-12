@@ -20,6 +20,11 @@ const form = useForm((): User => ({
   headers,
   body,
 }))
+
+function reset() {
+  form.reset()
+  document.getElementById('email')?.focus()
+}
 </script>
 
 <template>
@@ -43,8 +48,8 @@ const form = useForm((): User => ({
       <div class="mt-10 sm:mx-auto sm:w-full sm:max-w-sm">
         <form
           class="space-y-6"
-          action="#"
-          method="POST"
+          @submit.prevent="form.submit()"
+          @reset.prevent="reset"
         >
           <div>
             <label
@@ -116,6 +121,14 @@ const form = useForm((): User => ({
               class="flex w-full justify-center rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
             >
               Sign in
+            </button>
+          </div>
+          <div>
+            <button
+              class="text-sm text-gray-500"
+              type="reset"
+            >
+              Reset
             </button>
           </div>
         </form>

@@ -1,12 +1,12 @@
 import { z } from 'zod'
-import { defineZodPrecognitiveEventHandler, readBody } from '#imports'
+import { definePrecognitiveEventHandler, readBody } from '#imports'
 
 const loginSchema = z.object({
   email: z.string().email().refine(email => email !== 'sot@email.it', 'Email cannot be sot@email.it'),
   password: z.string(),
 })
 
-export default defineZodPrecognitiveEventHandler({
+export default definePrecognitiveEventHandler({
   async onRequest(event) {
     const body = await readBody(event)
     loginSchema.parse(body)

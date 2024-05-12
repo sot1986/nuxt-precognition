@@ -94,11 +94,17 @@ export function makeLaravelValidationErrorParser(): ValidationErrorParser {
 export function assertSuccessfulPrecognitiveResponses(
   ctx: { options: { headers?: HeadersInit }, response: Response },
 ) {
-  const reqHeaders = new Headers(ctx.options.headers)
-  if (reqHeaders.get('Precognition') !== 'true') {
+  if ((new Headers(ctx.options.headers)).get('Precognition') !== 'true') {
     return
   }
-  if (reqHeaders.get('Precognition-Success') !== 'true' || ctx.response.status !== 204) {
+
+  const check = [
+    (res: { status: number, headers: Headers }) => res?.headers?.get('Precognition') === 'true',
+    (res: { status: number, headers: Headers }) => res?.headers?.get('Precognition-Success') === 'true',
+    (res: { status: number, headers?: Headers }) => res.status === 204,
+  ].reduce((acc, fn) => acc && fn({ status: ctx.response.status, headers: ctx.response.headers }), true)
+
+  if (check === false) {
     throw createError({ message: 'Did not receive a Precognition response. Ensure you have the Precognition middleware in place for the route and Precognitive headers have been enabled in config/cors.php.', statusCode: 500 })
   }
 }

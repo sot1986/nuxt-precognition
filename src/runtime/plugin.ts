@@ -5,7 +5,6 @@ import { defineNuxtPlugin } from '#imports'
 
 export default defineNuxtPlugin(() => {
   const errorParsers: ValidationErrorParser[] = []
-
   const statusHandlers = {} as ClientStatusHandlers
 
   return {

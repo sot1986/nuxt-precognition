@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { getAllNestedKeys, isFile, resolveDynamicObject, requestPrecognitiveHeaders, resolveValidationErrorData, makeLaravelValidationErrorParser, makeNuxtValidationErrorParser } from '../../src/runtime/core'
+import { assertSuccessfulPrecognitiveResponses, getAllNestedKeys, isFile, resolveDynamicObject, requestPrecognitiveHeaders, resolveValidationErrorData, makeLaravelValidationErrorParser, makeNuxtValidationErrorParser } from '../../src/runtime/core'
 
 import type { LaravelPrecognitiveError, LaravelPrecognitiveErrorResponse, NuxtPrecognitiveError, NuxtPrecognitiveErrorResponse } from './types'
 
@@ -97,5 +97,44 @@ describe('test core functions', () => {
       makeLaravelValidationErrorParser(),
       makeNuxtValidationErrorParser(),
     ])?.errors).toEqual(errors)
+  })
+
+  it('assertSuccessfulPrecognitiveResponses does not throw when precognition header is set on response and request', () => {
+    const ctx = {
+      options: { headers: { Precognition: 'true' } },
+      response: new Response(
+        null,
+        {
+          headers: { 'Precognition': 'true', 'Precognition-Success': 'true' },
+          status: 204,
+        },
+      ),
+    }
+    expect(() => {
+      assertSuccessfulPrecognitiveResponses(ctx)
+    }).not.toThrow()
+  })
+
+  it.each([
+    new Response(null, { status: 204 }),
+    new Response(null, { headers: { Precognition: 'true' }, status: 204 }),
+    new Response(null, { headers: { 'Precognition': 'true', 'Precognition-Success': 'true' }, status: 200 }),
+  ])('assertSuccessfulPrecognitiveResponses does throw an error if response is not compatible with successfull precognitive requirements', (response) => {
+    const ctx = {
+      options: { headers: { Precognition: 'true' } },
+      response,
+    }
+    expect(() => {
+      assertSuccessfulPrecognitiveResponses(ctx)
+    }).toThrow('Did not receive a Precognition response. Ensure you have the Precognition middleware in place for the route and Precognitive headers have been enabled in config/cors.php.')
+  })
+
+  it.each([
+    { options: { headers: {} }, response: new Response(null, { status: 204 }) },
+    { options: { headers: new Headers([['Accept', 'application/json']]) }, response: new Response(null, { status: 200 }) },
+  ])('assertSuccessfulPrecognitiveResponses does not throw when precognition header is not set on request', (ctx) => {
+    expect(() => {
+      assertSuccessfulPrecognitiveResponses(ctx)
+    }).not.toThrow()
   })
 })

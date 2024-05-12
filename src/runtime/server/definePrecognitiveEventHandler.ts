@@ -1,8 +1,7 @@
 import type { EventHandler, EventHandlerObject, EventHandlerRequest, H3Event, _RequestMiddleware } from 'h3'
 import type { ValidationErrorParser, ValidationErrorsData } from '../types/core'
 import { hasResponse, makeLaravelValidationErrorParser, resolveValidationErrorData } from '../core'
-import type { Config } from '../types/config'
-import type { ServerStatusHandlers } from '../types/eventHandler'
+import type { PrecognitionEventContext, ServerStatusHandlers } from '../types/eventHandler'
 import type { ErrorStatusCode } from '../types/utils'
 import { useRuntimeConfig, defineEventHandler, setResponseHeader, createError, setResponseStatus } from '#imports'
 
@@ -42,7 +41,6 @@ function onPrecognitiveRequest<T extends EventHandlerRequest>(
   if (typeof onRequest === 'function')
     return onPrecognitiveRequestWrapper(
       onRequest,
-      config,
       {
         errorParsers: [...baseParsers, ...(options?.errorParsers ?? [])],
         statusHandlers: options?.statusHandlers,
@@ -51,7 +49,6 @@ function onPrecognitiveRequest<T extends EventHandlerRequest>(
 
   return onRequest.map(middleware => onPrecognitiveRequestWrapper(
     middleware,
-    config,
     {
       errorParsers: [...baseParsers, ...(options?.errorParsers ?? [])],
       statusHandlers: options?.statusHandlers,
@@ -61,7 +58,6 @@ function onPrecognitiveRequest<T extends EventHandlerRequest>(
 
 function onPrecognitiveRequestWrapper<T extends EventHandlerRequest>(
   middleware: _RequestMiddleware<T>,
-  config: Config,
   options: {
     errorParsers: ValidationErrorParser[]
     statusHandlers?: ServerStatusHandlers
@@ -81,7 +77,8 @@ function onPrecognitiveRequestWrapper<T extends EventHandlerRequest>(
       }
 
       const statusHandler = hasResponse(error) && options.statusHandlers
-        ? options.statusHandlers[`${error.response.status}` as ErrorStatusCode]
+        ? (options.statusHandlers[`${error.response.status}` as ErrorStatusCode]
+        ?? (event.context as PrecognitionEventContext).precognition.statusHandlers[`${error.response.status}` as ErrorStatusCode])
         : undefined
 
       if (statusHandler) {
@@ -90,13 +87,16 @@ function onPrecognitiveRequestWrapper<T extends EventHandlerRequest>(
 
       setResponseHeader(event, 'Content-Type', 'application/json')
 
-      const errorsData = resolveValidationErrorData(error, options.errorParsers)
+      const errorsData = resolveValidationErrorData(error, [
+        ...(event.context as PrecognitionEventContext).precognition.errorParsers,
+        ...options.errorParsers,
+      ])
 
       if (!errorsData) {
         throw error
       }
 
-      handleValidationErrorsData(errorsData, event, config)
+      handleValidationErrorsData(errorsData, event)
     }
   }
 }
@@ -104,7 +104,6 @@ function onPrecognitiveRequestWrapper<T extends EventHandlerRequest>(
 function handleValidationErrorsData<T extends EventHandlerRequest>(
   errorsData: ValidationErrorsData,
   event: H3Event<T>,
-  config: Config,
 ) {
   setResponseStatus(event, 422)
   setResponseHeader(event, 'Content-Type', 'application/json')
@@ -154,8 +153,6 @@ function onPrecognitiveHandler<TRequest extends EventHandlerRequest, TResponse>(
   handler: EventHandler<TRequest, TResponse>,
 ): EventHandler<TRequest, TResponse> {
   return (event: H3Event<EventHandlerRequest>) => {
-    const config = useRuntimeConfig().public.precognition
-
     if (event.headers.get('Precognition') !== 'true')
       return handler(event)
 
@@ -166,7 +163,7 @@ function onPrecognitiveHandler<TRequest extends EventHandlerRequest, TResponse>(
     const validateOnlyKey = event.headers.get('Precognition-Validate-Only')
     if (validateOnlyKey)
       setResponseHeader(event, 'Precognition-Validate-Only', validateOnlyKey)
-    setResponseStatus(event, config.successValidationStatusCode)
+    setResponseStatus(event, 200)
     return null as unknown as TResponse
   }
 }
