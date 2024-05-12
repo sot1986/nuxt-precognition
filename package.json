@@ -1,7 +1,7 @@
 {
   "name": "nuxt-precognition",
   "type": "module",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Nuxt module implementing Precognition protocol (inspired by official Laravel Precognition) for backend precognitive validation.",
   "author": {
     "name": "sot1986",
