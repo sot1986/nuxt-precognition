@@ -31,7 +31,7 @@ const form = useForm(
 )
 ```
 
-This moudules comes with native __Nitro__ integration, but will work with other backend as weel, even properly configured _aws lambda_.  
+This module comes with native __Nitro__ integration, but will work with other backend as weel, even properly configured _aws lambda_.  
 It supports any validation library (_who said [__Zod__](https://zod.dev/)??_) server or client side. You will need only to configure specific `Error parsers`.
 
 - [✨ &nbsp;Release Notes](/CHANGELOG.md)
@@ -93,7 +93,8 @@ export default defineNuxtPlugin(() => {
 From now on, everytime the `useForm` will catch the error, it will run our parses, and capture and assign any validation errors.
 
 ### How about server side
-Same idea, but can create a __custom eventHandler__ around the base `definePrecognitiveEventHandler`. Create a new `utils` like that:
+Same idea, but there are two approaches you can follow:
+1. Create custom eventHandler, starting from `definePrecognitiveEventHandler`. Create a new `utils` like that:
 
 ```ts
 // server/utils/precognition.ts
@@ -120,6 +121,47 @@ export const defineZodPrecognitiveEventHandler = definePrecognitiveEventHandler.
       },
     ]
   })
+```
+2. Define ErrorParsers or ServerStatusHandlers in a nitro plugin
+
+```ts
+// server/plugins/precognition.ts
+
+import { ZodError } from 'zod'
+
+/*
+export type ServerStatusHandlers = Partial<Record<ErrorStatusCode, <TRequest extends EventHandlerRequest>(error: Error, event: H3Event<TRequest>) => void | Promise<void>>>
+
+export interface PrecognitionEventContext {
+  precognition: {
+    errorParsers: ValidationErrorParser[]
+    statusHandlers: ServerStatusHandlers
+  }
+  precognitive: boolean
+}
+*/
+
+export default defineNitroPlugin((nitroApp) => {
+  nitroApp.hooks.hook('request', (event) => {
+    event.context.precognition.errorParsers = [
+      (error: Error) => {
+        if (error instanceof ZodError) {
+          const errors: Record<string, string[]> = {}
+          error.errors.forEach((e) => {
+            const key = e.path.join('.')
+            if (key in errors) {
+              errors[key].push(e.message)
+              return
+            }
+            errors[key] = [e.message]
+          })
+          const message = error.errors.at(0)?.message ?? 'Validation error'
+          return { errors, message }
+        }
+      },
+    ]
+  })
+})
 ```
 This time the error will be converted to `NuxtServerValidationError` and captured client side, if we enable the predefined parsers in the nuxt configuration file:
 
