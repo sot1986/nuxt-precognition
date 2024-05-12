@@ -1,7 +1,7 @@
 {
   "name": "nuxt-precognition",
   "type": "module",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Nuxt module implementing Precognition protocol (inspired by official Laravel Precognition) for backend precognitive validation.",
   "author": {
     "name": "sot1986",
@@ -44,30 +44,30 @@
     "test:watch": "vitest watch"
   },
   "dependencies": {
-    "@nuxt/kit": "^3.11.1",
+    "@nuxt/kit": "^3.11.2",
     "defu": "^6.1.4",
     "lodash-es": "^4.17.21"
   },
   "devDependencies": {
     "@nuxt/devtools": "latest",
-    "@nuxt/eslint-config": "^0.3.7",
+    "@nuxt/eslint-config": "^0.3.12",
     "@nuxt/module-builder": "^0.5.5",
-    "@nuxt/schema": "^3.11.1",
-    "@nuxt/test-utils": "^3.12.0",
+    "@nuxt/schema": "^3.11.2",
+    "@nuxt/test-utils": "^3.12.1",
     "@tailwindcss/forms": "^0.5.7",
     "@types/lodash-es": "^4.17.12",
-    "@types/node": "^20.11.29",
+    "@types/node": "^20.12.11",
     "autoprefixer": "^10.4.19",
     "changelogen": "^0.5.5",
     "eslint": "^8.57.0",
     "h3": "^1.11.1",
-    "nuxt": "^3.11.1",
-    "playwright-core": "^1.43.1",
+    "nuxt": "^3.11.2",
+    "playwright-core": "^1.44.0",
     "postcss": "^8.4.38",
     "tailwindcss": "^3.4.3",
-    "typescript": "^5.4.4",
-    "vitest": "^1.4.0",
-    "vue-tsc": "^2.0.10",
-    "zod": "^3.23.6"
+    "typescript": "^5.4.5",
+    "vitest": "^1.6.0",
+    "vue-tsc": "^2.0.17",
+    "zod": "^3.23.8"
   }
 }
