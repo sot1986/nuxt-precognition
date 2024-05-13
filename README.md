@@ -163,6 +163,43 @@ export default defineNitroPlugin((nitroApp) => {
   })
 })
 ```
+
+Use the `definePrecognitiveEventHandler` (or the one you created following parth 1.) in your api:
+
+```ts
+// server/api/login.post.ts
+import { z } from 'zod'
+import { definePrecognitiveEventHandler, readBody } from '#imports'
+
+const loginSchema = z.object({
+  email: z.string().email().refine(_email => // Check for email uniqueness
+    true, { message: 'Email is already in use' },
+  ),
+  password: z.string(),
+}).refine((_data) => {
+  // Check for email and password match
+  // ...
+  return true
+},
+{ message: 'invalid credentials', path: ['email'] },
+)
+
+export default definePrecognitiveEventHandler({
+  async onRequest(event) {
+    const body = await readBody(event)
+    loginSchema.parse(body)
+  },
+  handler: () => {
+    return {
+      status: 200,
+      body: {
+        message: 'Success',
+      },
+    }
+  },
+})
+```
+
 This time the error will be converted to `NuxtServerValidationError` and captured client side, if we enable the predefined parsers in the nuxt configuration file:
 
 ```ts
@@ -176,6 +213,8 @@ export default defineNuxtConfig({
   }
 })
 ```
+__Remember to throw the `ValidationError` only in the `onRequest` handler (using the `object notation`)__.  
+Any logic in the base `handler` won't be process during `precognitiveRequests`.
 
 
 ## Quick Setup
