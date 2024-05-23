@@ -2,8 +2,8 @@ import { ZodError } from 'zod'
 
 export default defineNitroPlugin((nitroApp) => {
   nitroApp.hooks.hook('request', (event) => {
-    event.context.precognition.errorParsers = [
-      (error: Error) => {
+    event.context.$precognition.errorParsers = [
+      (error) => {
         if (error instanceof ZodError) {
           const errors: Record<string, string[]> = {}
           error.errors.forEach((e) => {

@@ -168,3 +168,11 @@ export function useForm<TData extends object, TResp>(
 
   return form
 }
+
+useForm.create = <TData extends object, TResp>(
+  _options?: UseFormOptions<TData>,
+) => (
+    init: TData | (() => TData),
+    cb: (form: TData, precognitiveHeaders: Headers) => Promise<TResp>,
+    options?: UseFormOptions<TData>,
+  ) => useForm(init, cb, { ..._options, ...options })

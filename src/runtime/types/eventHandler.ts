@@ -5,7 +5,7 @@ import type { ValidationErrorParser } from './core'
 export type ServerStatusHandlers = Partial<Record<ErrorStatusCode, <TRequest extends EventHandlerRequest>(error: Error, event: H3Event<TRequest>) => void | Promise<void>>>
 
 export interface PrecognitionEventContext {
-  precognition: {
+  $precognition: {
     errorParsers: ValidationErrorParser[]
     statusHandlers: ServerStatusHandlers
   }

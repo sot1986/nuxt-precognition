@@ -92,59 +92,20 @@ export default defineNuxtPlugin(() => {
 ```
 From now on, everytime the `useForm` will catch the error, it will run our parses, and capture and assign any validation errors.
 
+If you want to reuse same options over multiple pages, you can create your __custom composable__ by `useForm.create` factory function.
+
 ### How about server side
-Same idea, but there are two approaches you can follow:
-1. Create custom eventHandler, starting from `definePrecognitiveEventHandler`. Create a new `utils` like that:
-
-```ts
-// server/utils/precognition.ts
-
-import { ZodError } from 'zod'
-
-export const defineZodPrecognitiveEventHandler = definePrecognitiveEventHandler.create(
-  {
-    errorParsers: [
-        (error) => {
-        if (error instanceof ZodError) {
-          const errors: Record<string, string[]> = {}
-          error.errors.forEach((e) => {
-            const key = e.path.join('.')
-            if (key in errors) {
-              errors[key].push(e.message)
-              return
-            }
-            errors[key] = [e.message]
-          })
-          const message = error.errors.at(0)?.message ?? 'Validation error'
-          return { errors, message }
-        }
-      },
-    ]
-  })
-```
-2. Define ErrorParsers or ServerStatusHandlers in a nitro plugin
+Same idea, creating a nitro plugin:
 
 ```ts
 // server/plugins/precognition.ts
 
 import { ZodError } from 'zod'
 
-/*
-export type ServerStatusHandlers = Partial<Record<ErrorStatusCode, <TRequest extends EventHandlerRequest>(error: Error, event: H3Event<TRequest>) => void | Promise<void>>>
-
-export interface PrecognitionEventContext {
-  precognition: {
-    errorParsers: ValidationErrorParser[]
-    statusHandlers: ServerStatusHandlers
-  }
-  precognitive: boolean
-}
-*/
-
 export default defineNitroPlugin((nitroApp) => {
   nitroApp.hooks.hook('request', (event) => {
-    event.context.precognition.errorParsers = [
-      (error: Error) => {
+    event.context.$precognition.errorParsers = [
+      (error) => {
         if (error instanceof ZodError) {
           const errors: Record<string, string[]> = {}
           error.errors.forEach((e) => {
@@ -163,8 +124,9 @@ export default defineNitroPlugin((nitroApp) => {
   })
 })
 ```
+If you don't like hooking on every requests, you can create you custom eventHandler by `definePrecognitiveEventHandler.create` factory function.
 
-Use the `definePrecognitiveEventHandler` (or the one you created following parth 1.) in your api:
+Make your validation logic inside the `onRequest` handler of the `definePrecognitiveEventHandler`.
 
 ```ts
 // server/api/login.post.ts
@@ -215,6 +177,27 @@ export default defineNuxtConfig({
 ```
 __Remember to throw the `ValidationError` only in the `onRequest` handler (using the `object notation`)__.  
 Any logic in the base `handler` won't be process during `precognitiveRequests`.
+
+* Each `event.context` include also a flag (`{ precognitive: boolean }`), indicating if request is precognitive or not, looking at presence of _Precognitive header_.
+
+### Precognition Protocol
+In case you need to define your own backend logic outside nitro (_AWS Lamba_), respect following list of requirements.
+
+- Precognitive Requests must have:
+  1. Precognitive Header `{ 'Precognitive': 'true' }`
+- To validate specific variables, each keys must be specified inside the ValidateOnly Header, comma separated and leveraging dot notation `{ 'Precognition-Validate-Only': 'name,age,address.street,address.number' }`
+- To validate the full Form the ValidateOnly Header should be omitted or define as an empty string.
+- Successfull validation response must have:
+  1. Precognitive Header `{ 'Precognitive': 'true' }`
+  2. Precognitive Successfull Header `{ 'Precognition-Success': 'true' }`
+  3. Precognitve Successfull status code: `204`
+- Error validation response must have:
+  1. Precognitive Header `{ 'Precognitive': 'true' }`
+  2. ValidationOnly header if needed `{ 'Precognition-Validate-Only': 'name,age,address.street,address.number' }`
+  3. Validation Error status code: `422`
+  4. Validation Errors and Message will be parsed as per your define logic, or using standard `errorParsers`:
+     - NuxtErrorParsers: `NuxtPrecognitiveErrorResponse`: `Response & { _data: { data: ValidationErrorsData }}`
+     - LaravelErrorParsers: `LaravelPrecognitiveErrorResponse`: `Response & { _data: ValidationErrorsData }`
 
 
 ## Quick Setup

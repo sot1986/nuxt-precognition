@@ -1,7 +1,7 @@
 import type { EventHandler, EventHandlerObject, EventHandlerRequest, H3Event, _RequestMiddleware } from 'h3'
 import type { ValidationErrorParser, ValidationErrorsData } from '../types/core'
 import { hasResponse, makeLaravelValidationErrorParser, resolveValidationErrorData } from '../core'
-import type { PrecognitionEventContext, ServerStatusHandlers } from '../types/eventHandler'
+import type { ServerStatusHandlers } from '../types/eventHandler'
 import type { ErrorStatusCode } from '../types/utils'
 import { useRuntimeConfig, defineEventHandler, setResponseHeader, createError, setResponseStatus } from '#imports'
 
@@ -76,9 +76,9 @@ function onPrecognitiveRequestWrapper<T extends EventHandlerRequest>(
         })
       }
 
-      const statusHandler = hasResponse(error) && options.statusHandlers
+      const statusHandler = (hasResponse(error) && options.statusHandlers)
         ? (options.statusHandlers[`${error.response.status}` as ErrorStatusCode]
-        ?? (event.context as PrecognitionEventContext).precognition.statusHandlers[`${error.response.status}` as ErrorStatusCode])
+        ?? event.context.$precognition.statusHandlers[`${error.response.status}` as ErrorStatusCode])
         : undefined
 
       if (statusHandler) {
@@ -88,7 +88,7 @@ function onPrecognitiveRequestWrapper<T extends EventHandlerRequest>(
       setResponseHeader(event, 'Content-Type', 'application/json')
 
       const errorsData = resolveValidationErrorData(error, [
-        ...(event.context as PrecognitionEventContext).precognition.errorParsers,
+        ...event.context.$precognition.errorParsers,
         ...options.errorParsers,
       ])
 
