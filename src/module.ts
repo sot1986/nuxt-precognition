@@ -10,7 +10,7 @@ export default defineNuxtModule<ModuleOptions>({
     name: 'nuxt-precognition',
     configKey: 'precognition',
     compatibility: {
-      nuxt: '>=^3.9.0',
+      nuxt: '>=3.9.0',
     },
   },
   // Default configuration options of the Nuxt module

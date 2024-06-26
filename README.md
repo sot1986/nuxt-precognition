@@ -16,7 +16,7 @@ Find and replace all on all files (CMD+SHIFT+F):
 
 This is a new version of [nuxt-laravel-precognition](https://www.npmjs.com/package/nuxt-laravel-precognition). It offers same features, but being not dependent on Laravel.
 
-Instead of supporting only _$fetch_ and _Laravel_, it works with simple promises, targetting any backend that implements the base Precognition protocol. These promises will receive the form `payload` and protocol `Headers`.
+Instead of supporting only _$fetch_ and _Laravel_, it works with simple promises, targeting any backend that implements the base Precognition protocol. These promises will receive the form `payload` and protocol `Headers`.
 
 #### Example
 ```ts
@@ -31,7 +31,7 @@ const form = useForm(
 )
 ```
 
-This module comes with native __Nitro__ integration, but will work with other backend as weel, even properly configured _aws lambda_.  
+This module comes with native __Nitro__ integration, but will work with other backend as well, even properly configured _aws lambda_.  
 It supports any validation library (_who said [__Zod__](https://zod.dev/)??_) server or client side. You will need only to configure specific `Error parsers`.
 
 - [✨ &nbsp;Release Notes](/CHANGELOG.md)
@@ -92,7 +92,7 @@ export default defineNuxtPlugin(() => {
 ```
 From now on, everytime the `useForm` will catch the error, it will run our parses, and capture and assign any validation errors.
 
-If you want to reuse same options over multiple pages, you can create your __custom composable__ by `useForm.create` factory function.
+If you want to reuse the same options over multiple pages, you can create your __custom composable__ by `useForm.create` factory function.
 
 ### How about server side
 Same idea, creating a nitro plugin:
@@ -124,7 +124,7 @@ export default defineNitroPlugin((nitroApp) => {
   })
 })
 ```
-If you don't like hooking on every requests, you can create you custom eventHandler by `definePrecognitiveEventHandler.create` factory function.
+If you don't like hooking on every request, you can create your custom eventHandler by `definePrecognitiveEventHandler.create` factory function.
 
 Make your validation logic inside the `onRequest` handler of the `definePrecognitiveEventHandler`.
 
