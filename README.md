@@ -290,7 +290,7 @@ export default defineNuxtPlugin((app) => {
     }
   }
 
-  app.hook('app:mounted', fetchSanctumToken)
+  defineNuxtPlugin.hook('app:mounted', fetchSanctumToken)
 
   return {
     provide: {
