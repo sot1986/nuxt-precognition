@@ -33,7 +33,7 @@ const form = useForm(
 
 This module comes with native __Nitro__ integration, but will work with other backend as well.
 
-Are you using only __Lambda__? You are covered will [Lambda Precognition](https://www.npmjs.com/package/lambda-precognition)!!
+Are you using only __Lambda__? You are covered with [Lambda Precognition](https://www.npmjs.com/package/lambda-precognition)!!
 
 It supports any validation library (_who said [__Zod__](https://zod.dev/)??_) server or client side. You will need only to configure specific `Error parsers`.
 
