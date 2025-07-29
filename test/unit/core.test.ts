@@ -121,7 +121,7 @@ describe('test core functions', () => {
       response: new Response(
         null,
         {
-          headers: { 'Precognition': 'true' },
+          headers: { Precognition: 'true' },
           status: 422,
         },
       ),
