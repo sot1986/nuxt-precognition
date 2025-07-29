@@ -115,6 +115,22 @@ describe('test core functions', () => {
     }).not.toThrow()
   })
 
+  it('assertSuccessfulPrecognitiveResponses does not throw when precognition header is set on response and request and response return validation errors with status 422', () => {
+    const ctx = {
+      options: { headers: { Precognition: 'true' } },
+      response: new Response(
+        null,
+        {
+          headers: { 'Precognition': 'true' },
+          status: 422,
+        },
+      ),
+    }
+    expect(() => {
+      assertSuccessfulPrecognitiveResponses(ctx)
+    }).not.toThrow()
+  })
+
   it.each([
     new Response(null, { status: 204 }),
     new Response(null, { headers: { Precognition: 'true' }, status: 204 }),
