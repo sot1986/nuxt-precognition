@@ -182,7 +182,7 @@ function reset() {
 }
 ```
 
-```vue
+```html
 <form
   @submit.prevent="login"
   @reset.prevent="reset"
