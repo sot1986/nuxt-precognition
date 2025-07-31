@@ -1,4 +1,3 @@
-import { get } from 'node:http'
 import type { NestedKeyOf } from './types/utils'
 
 interface Model {
@@ -20,6 +19,7 @@ interface Model {
   favorites: { site: string }[]
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const model: Model = {
   id: '1',
   name: 'John Doe',
