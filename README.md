@@ -1,11 +1,15 @@
-<!--
-Get your module up and running quickly.
+<!-- Badges -->
+[npm-version-src]: https://img.shields.io/npm/v/nuxt-precognition/latest.svg?style=flat&colorA=020420&colorB=00DC82
+[npm-version-href]: https://npmjs.com/package/nuxt-precognition
 
-Find and replace all on all files (CMD+SHIFT+F):
-- Name: Nuxt Precognition
-- Package name: nuxt-precognition
-- Description: My new Nuxt module
--->
+[npm-downloads-src]: https://img.shields.io/npm/dm/nuxt-precognition.svg?style=flat&colorA=020420&colorB=00DC82
+[npm-downloads-href]: https://npmjs.com/package/nuxt-precognition
+
+[license-src]: https://img.shields.io/npm/l/nuxt-precognition.svg?style=flat&colorA=020420&colorB=00DC82
+[license-href]: https://npmjs.com/package/nuxt-precognition
+
+[nuxt-src]: https://img.shields.io/badge/Nuxt-020420?logo=nuxt.js
+[nuxt-href]: https://nuxt.com
 
 # Nuxt Precognition
 
@@ -14,13 +18,48 @@ Find and replace all on all files (CMD+SHIFT+F):
 [![License][license-src]][license-href]
 [![Nuxt][nuxt-src]][nuxt-href]
 
-This is a new version of [nuxt-laravel-precognition](https://www.npmjs.com/package/nuxt-laravel-precognition). It offers same features, but being not dependent on Laravel.
+Nuxt Precognition is a validation module for Nuxt that implements the [Precognition protocol](https://laravel.com/docs/10.x/precognition) in a backend-agnostic way. It supports any backend or validation library, and is not tied to Laravel.
 
-Instead of supporting only _$fetch_ and _Laravel_, it works with simple promises, targeting any backend that implements the base Precognition protocol. These promises will receive the form `payload` and protocol `Headers`.
+## Table of Contents
 
-#### Example
+- [Nuxt Precognition](#nuxt-precognition)
+  - [Table of Contents](#table-of-contents)
+  - [Requirements](#requirements)
+  - [Why Nuxt Precognition?](#why-nuxt-precognition)
+  - [Quick Example](#quick-example)
+  - [Features](#features)
+  - [Installation](#installation)
+  - [How It Works](#how-it-works)
+    - [Define Zod Error Parser](#define-zod-error-parser)
+    - [Client Side Validation](#client-side-validation)
+    - [Server Side Validation](#server-side-validation)
+  - [Precognition Protocol](#precognition-protocol)
+  - [Configuration](#configuration)
+    - [Options](#options)
+    - [Status Handlers](#status-handlers)
+  - [Laravel Integration](#laravel-integration)
+  - [Contributing](#contributing)
+  - [License](#license)
+
+## Requirements
+
+- Nuxt >= 3.x
+- Node.js >= 18
+
+## Why Nuxt Precognition?
+
+- **Backend agnostic:** Works with any backend that supports the Precognition protocol.
+- **Validation library agnostic:** Use Zod, Yup, or any other validation library.
+- **Client & server side validation:** Seamless validation on both ends.
+- **Optimal TypeScript support:** Typesafe forms and error handling.
+- **Highly customizable:** Plug in your own error parsers and status handlers.
+
+---
+
+## Quick Example
+
 ```ts
-interface User = {
+interface User {
   email: string
   password: string
 }
@@ -31,27 +70,32 @@ const form = useForm(
 )
 ```
 
-This module comes with native __Nitro__ integration, but will work with other backend as well.
+---
 
-Are you using only __Lambda__? You are covered with [Lambda Precognition](https://www.npmjs.com/package/lambda-precognition)!!
+## Features
 
-It supports any validation library (_who said [__Zod__](https://zod.dev/)??_) server or client side. You will need only to configure specific `Error parsers`.
+- Laravel compliant
+- Validation library agnostic
+- Client and server side validation
+- TypeScript support
+- Customizable error parsing and status handling
 
-- [✨ &nbsp;Release Notes](/CHANGELOG.md)
-<!-- - [🏀 Online playground](https://stackblitz.com/github/your-org/nuxt-precognition?file=playground%2Fapp.vue) -->
-<!-- - [📖 &nbsp;Documentation](https://example.com) -->
+---
 
-### Features
+## Installation
 
-<!-- Highlight some of the features your module provide here -->
-- &nbsp;Laravel compliant
-- &nbsp;Validation library agnostic
-- &nbsp;Client and server side validation
-- &nbsp;Optimal Typescript support
-- &nbsp;Highly customizable
+Install the module in your Nuxt app:
 
-### How it works
-Everything turns around `errorParsers`(_user defined function to read validation errors from_ `Error` _payload_):
+```bash
+npx nuxi module add nuxt-precognition
+```
+
+---
+
+## How It Works
+
+The core concept is **error parsers**: functions that extract validation errors from thrown errors.
+
 ```ts
 type ValidationErrors = Record<string, string | string[]>
 
@@ -63,84 +107,160 @@ interface ValidationErrorsData {
 type ValidationErrorParser = (error: Error) => ValidationErrorsData | undefined | null
 ```
 
-You can define them globally (in `Nuxt Plugin` or custom `eventHandler`), or per `form` instance.
-
-Imagine you are working with [__Zod__](https://zod.dev/).  
-Just create a __nuxt plugin__ and define the "_Zod error parser_":
+### Define Zod Error Parser
 
 ```ts
-// plugins/precognition.ts
+// app/utils/precognition.ts or shared/utils/precognition.ts
+import { ZodError } from 'zod'
 
+export const zodErrorParser: ValidationErrorParser = (error) => {
+  if (error instanceof ZodError) {
+    const errors = {} as Record<string, string[]>
+    error.errors.forEach((e) => {
+      const key = e.path.join('.')
+      if (key in errors) {
+        errors[key].push(e.message)
+        return
+      }
+      errors[key] = [e.message]
+    })
+    return { errors, message: 'Validation error' }
+  }
+  return null
+}
+```
+
+> **Note:**  
+> For Server side validation, place this file in `shared/utils` folder.
+
+### Client Side Validation
+
+Add the parser client side globally.
+
+```ts
+// app/plugins/precognition.ts
 export default defineNuxtPlugin(() => {
   const { $precognition } = useNuxtApp()
 
-  $precognition.errorParsers.push(
-    (error) => {
-      if (error instanceof ZodError) {
-        const errors = {} as Record<string, string[]>
-        error.errors.forEach((e) => {
-          const key = e.path.join('.')
-          if (key in errors) {
-            errors[key].push(e.message)
-            return
-          }
-          errors[key] = [e.message]
-        })
-        return { errors, message: 'Validation error' }
-      }
-      return null
-    },
-  )
+  $precognition.errorParsers.push(zodErrorParser)
+
+  // ..
 })
 ```
-From now on, everytime the `useForm` will catch the error, it will run our parses, and capture and assign any validation errors.
 
-If you want to reuse the same options over multiple pages, you can create your __custom composable__ by `useForm.create` factory function.
+Use the composable in setup method.
+```ts
+const UserSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(8),
+})
 
-### How about server side
-Same idea, creating a nitro plugin:
+const form = useForm(
+  (): z.infer<typeof UserSchema> => ({
+    email: '',
+    password: '',
+  }),
+  (body, headers) => $fetch('/api/login', {
+    method: 'POST',
+    headers,
+    body,
+  }),
+  {
+    clientValidation(data) {
+      UserSchema.parse(data)
+    },
+  },
+)
 
+function login() {
+  form.submit()
+}
+
+function reset() {
+  form.reset()
+  document.getElementById('email')?.focus()
+}
+```
+
+```vue
+<form
+  @submit.prevent="login"
+  @reset.prevent="reset"
+>
+  <div>
+    <label for="email">Email address</label>
+    <input
+      id="email"
+      v-model="form.email"
+      name="email"
+      type="email"
+      @change="form.validate('email')"
+    >
+    <span v-if="form.valid('email')">OK!!</span>
+    <span v-if="form.invalid('email')">{{ form.errors.email }}</span>
+  </div>
+
+  <div>
+    <label for="password">Password</label>
+    <input
+      id="password"
+      v-model="form.password"
+      name="password"
+      type="password"
+      autocomplete="current-password"
+      required
+      @change="form.validate('password')"
+    >
+    <span v-if="form.valid('password')">OK!!</span>
+    <span v-if="form.invalid('password')">{{ form.errors.password }}</span>
+  </div>
+
+  <div>
+    <button type="submit">Sign in</button>
+    <button type="reset">Reset</button>
+  </div>
+</form>
+```
+
+### Server Side Validation
+
+1.  update the default configuration.
+```ts
+// nuxt.config.ts
+
+export default defineNuxtConfig({
+  modules: [
+    'nuxt-precognition'
+  ],
+  precognition: {
+    backendValidation: true, 
+    enableNuxtClientErrorParser: true,
+  },
+})
+```
+2.  Create a Nitro plugin to parse server errors:
 ```ts
 // server/plugins/precognition.ts
-
 import { ZodError } from 'zod'
 
 export default defineNitroPlugin((nitroApp) => {
   nitroApp.hooks.hook('request', (event) => {
     event.context.$precognition.errorParsers = [
-      (error) => {
-        if (error instanceof ZodError) {
-          const errors: Record<string, string[]> = {}
-          error.errors.forEach((e) => {
-            const key = e.path.join('.')
-            if (key in errors) {
-              errors[key].push(e.message)
-              return
-            }
-            errors[key] = [e.message]
-          })
-          const message = error.errors.at(0)?.message ?? 'Validation error'
-          return { errors, message }
-        }
-      },
+      zodErrorParser
     ]
   })
 })
 ```
-If you don't like hooking on every request, you can create your custom eventHandler by `definePrecognitiveEventHandler.create` factory function.
 
-Make your validation logic inside the `onRequest` handler of the `definePrecognitiveEventHandler`.
-
+3.  Use `definePrecognitiveEventHandler` in the _object_ way and add validation in the `onRequest` hook.
 ```ts
 // server/api/login.post.ts
 import { z } from 'zod'
 import { definePrecognitiveEventHandler, readBody } from '#imports'
 
 const loginSchema = z.object({
-  email: z.string().email().refine(_email => // Check for email uniqueness
-    true, { message: 'Email is already in use' },
-  ),
-  password: z.string(),
+  email: z.string().email(),
+  password: z.string()
 }).refine((_data) => {
   // Check for email and password match
   // ...
@@ -164,65 +284,59 @@ export default definePrecognitiveEventHandler({
   },
 })
 ```
+---
 
-This time the error will be converted to `NuxtServerValidationError` and captured client side, if we enable the predefined parsers in the nuxt configuration file:
+## Precognition Protocol
 
-```ts
-// nuxt.config.ts
-
-export default defineNuxtConfig({
-  modules: ['nuxt-precognitiion'],
-  precognition: {
-    backendValidation: true,
-    enableNuxtClientErrorParser: true,
-  }
-})
-```
-__Remember to throw the `ValidationError` only in the `onRequest` handler (using the `object notation`)__.  
-Any logic in the base `handler` won't be process during `precognitiveRequests`.
-
-* Each `event.context` include also a flag (`{ precognitive: boolean }`), indicating if request is precognitive or not, looking at presence of _Precognitive header_.
-
-### Precognition Protocol
-In case you need to define your own backend logic outside nitro (_AWS Lamba_), respect following list of requirements.
+If you need to define your own backend logic outside Nitro, follow these requirements.
 
 - Precognitive Requests must have:
   1. Precognitive Header `{ 'Precognitive': 'true' }`
 - To validate specific variables, each keys must be specified inside the ValidateOnly Header, comma separated and leveraging dot notation `{ 'Precognition-Validate-Only': 'name,age,address.street,address.number' }`
 - To validate the full Form the ValidateOnly Header should be omitted or define as an empty string.
-- Successfull validation response must have:
+- Successful validation response must have:
   1. Precognitive Header `{ 'Precognitive': 'true' }`
-  2. Precognitive Successfull Header `{ 'Precognition-Success': 'true' }`
-  3. Precognitve Successfull status code: `204`
+  2. Precognitive Successful Header `{ 'Precognition-Success': 'true' }`
+  3. Precognitive Successful status code: `204`
 - Error validation response must have:
   1. Precognitive Header `{ 'Precognitive': 'true' }`
-  2. ValidationOnly header if needed `{ 'Precognition-Validate-Only': 'name,age,address.street,address.number' }`
+  2. Precognition-Validate-Only header if needed `{ 'Precognition-Validate-Only': 'name,age,address.street,address.number' }`
   3. Validation Error status code: `422`
   4. Validation Errors and Message will be parsed as per your define logic, or using standard `errorParsers`:
      - NuxtErrorParsers: `NuxtPrecognitiveErrorResponse`: `Response & { _data: { data: ValidationErrorsData }}`
      - LaravelErrorParsers: `LaravelPrecognitiveErrorResponse`: `Response & { _data: ValidationErrorsData }`
 
+---
 
-## Quick Setup
+## Configuration
 
-Install the module to your Nuxt application with one command:
+Add to your `nuxt.config.ts`:
 
-```bash
-npx nuxi module add nuxt-precognition
+```ts
+export default defineNuxtConfig({
+  modules: ['nuxt-precognition'],
+  precognition: {
+    backendValidation: true,
+    enableNuxtClientErrorParser: true,
+    // ...other options
+  }
+})
 ```
 
-### Configure
-
+### Options
 | name | type | default | description |
 |---|---|---|---|
 |validationTimeout|_number_|`1500`|Debounce time, in milliseconds, between two precognitive validation requests.|
 |backendValidation|_boolean_|`false`|Flag to enable the precognitive validation.|
 |validateFiles|_boolean_|`false`|Flag to enable files validation on precognitive requests.|
-|enableNuxtClientErrorParser|_boolean_|`false`|Flag to enable _nuxtErrorParsers_ @ client side (in `form.validate` and `form.submit`).|
-|enableLaravelClientErrorParser|_boolean_|`false`|Flag to enable _laravelErrorParsers_ @ client side (in `form.validate` and `form.submit`).|
-|enableLaravelServerErrorParser|_boolean_|`false`|Flag to enable _laravelErrorParsers_ @ client side (in `definePrecognitiveEventHandler`).|
+|enableNuxtClientErrorParser|_boolean_|`false`|Flag to enable _nuxtErrorParsers_ on client side (in `form.validate` and `form.submit`).|
+|enableLaravelClientErrorParser|_boolean_|`false`|Flag to enable _laravelErrorParsers_ on client side (in `form.validate` and `form.submit`).|
+|enableLaravelServerErrorParser|_boolean_|`false`|Flag to enable _laravelErrorParsers_ on server side (in `definePrecognitiveEventHandler`).|
 
-#### Status Handlers
+
+---
+
+### Status Handlers
 Like in [official package](https://github.com/laravel/precognition), you can define globally, or @instance level, custom handlers for specific error codes:
 
 ```ts
@@ -243,14 +357,31 @@ export default defineNuxtPlugin(() => {
 })
 ```
 
-That's it! You can now use Nuxt Precognition in your Nuxt app ✨
+---
 
-#### Working with Laravel
+## Laravel Integration
 
-1. Define a plugin like this
+If you want to use Laravel, you won't need nuxt nitro integration.
+
+1. **Enable Backend Validation and Error Parsers:**
+
 ```ts
-// plugins/api.ts
+// nuxt.config.ts
+export default defineNuxtConfig({
+  modules: ['nuxt-precognition'],
+  precognition: {
+    backendValidation: true,
+    enableLaravelClientErrorParser: true,
+  }
+})
+```
 
+2. **Plugin Example:**
+
+Add Sanctum token prefetch and ensure proper handling of all precognitive requests.
+
+```ts
+// plugins/laravel.ts
 export default defineNuxtPlugin((app) => {
   const { $precognition } = useNuxtApp()
   const token = useCookie('XSRF-TOKEN')
@@ -263,7 +394,6 @@ export default defineNuxtPlugin((app) => {
       'Content-Type': 'application/json',
     },
     onRequest: ({ options }) => {
-      // Setup csrf protection for every requests if available
       if (token.value) {
         const headers = new Headers(options.headers)
         headers.set('X-XSRF-TOKEN', token.value)
@@ -271,7 +401,7 @@ export default defineNuxtPlugin((app) => {
       }
     },
     onResponse: (context) => {
-      // ensure that all precognitive requests will receive precognitive responses
+      // ensure non false positive validations
       $precognition.assertSuccessfulPrecognitiveResponses(context)
     },
   })
@@ -280,12 +410,8 @@ export default defineNuxtPlugin((app) => {
     try {
       await api('/sanctum/csrf-cookie')
       token.value = useCookie('XSRF-TOKEN').value
-
-      if (!token.value) {
-        throw new Error('Failed to get CSRF token')
-      }
-    }
-    catch (e) {
+      if (!token.value) throw new Error('Failed to get CSRF token')
+    } catch (e) {
       console.error(e)
     }
   }
@@ -303,102 +429,66 @@ export default defineNuxtPlugin((app) => {
   }
 })
 ```
-2. Enable backend validation and native Laravel Error parsers client or server side
-```ts
-// nuxt.config.ts
-export default defineNuxtConfig({
-  modules: ['nuxt-precognition'],
-  precognition: {
-    backendValidation: true,
-    enableLaravelClientErrorParser: true,
-  },
-  /*
-  ...
-  */
-})
-```
-\* If you `enableLaravelServerErrorParser`, you must also `enableNuxtClientErrorParser`
 
-3. Setup Laravel Cors configuration file
+3. **Laravel CORS Configuration:**
+
+Ensure Precognitive headers will be shared with Nuxt application.
+
 ```php
 // config/cors.php
-
 return [
-
-    /*
-    |--------------------------------------------------------------------------
-    | Cross-Origin Resource Sharing (CORS) Configuration
-    |--------------------------------------------------------------------------
-    |
-    */
-
-    'paths' => ['*'],
-
-    'allowed_methods' => ['*'],
-
-    'allowed_origins' => ['*'],
-
-    'allowed_origins_patterns' => [env('FRONTEND_URL', 'http://localhost:3000')],
-
-    'allowed_headers' => ['*'],
-
-    'exposed_headers' => ['Precognition', 'Precognition-Success'],
-
-    'max_age' => 0,
-
-    'supports_credentials' => true,
-
+  'paths' => ['*'],
+  'allowed_methods' => ['*'],
+  'allowed_origins' => ['*'],
+  'allowed_origins_patterns' => [env('FRONTEND_URL', 'http://localhost:3000')],
+  'allowed_headers' => ['*'],
+  'exposed_headers' => ['Precognition', 'Precognition-Success'],
+  'max_age' => 0,
+  'supports_credentials' => true,
 ];
 ```
-3. Enable the Precognition Middleware where needed
+
+4. **Enable Precognition Middleware:**
+
+Apply precognitive middleware where needed.
 
 ```php
 // routes/api.php
-
 Route::middleware('precognitive')->group(function () {
     Route::apiResource('posts', \App\Http\Controllers\PostController::class);
 });
 ```
-## Contribution
 
-<details>
-  <summary>Local development</summary>
+That's it. Nuxt validation will be in sync with Laravel!!.
 
-  ```bash
-  # Install dependencies
-  npm install
+---
 
-  # Generate type stubs
-  npm run dev:prepare
+## Contributing
 
-  # Develop with the playground
-  npm run dev
+```bash
+# Install dependencies
+npm install
 
-  # Build the playground
-  npm run dev:build
+# Generate type stubs
+npm run dev:prepare
 
-  # Run ESLint
-  npm run lint
+# Develop with the playground
+npm run dev
 
-  # Run Vitest
-  npm run test
-  npm run test:watch
+# Build the playground
+npm run dev:build
 
-  # Release new version
-  npm run release
-  ```
+# Run ESLint
+npm run lint
 
-</details>
+# Run Vitest
+npm run test
+npm run test:watch
 
-<!-- Badges -->
-[npm-version-src]: https://img.shields.io/npm/v/nuxt-precognition/latest.svg?style=flat&colorA=020420&colorB=00DC82
-[npm-version-href]: https://npmjs.com/package/nuxt-precognition
+# Release new version
+npm run release
+```
 
-[npm-downloads-src]: https://img.shields.io/npm/dm/nuxt-precognition.svg?style=flat&colorA=020420&colorB=00DC82
-[npm-downloads-href]: https://npmjs.com/package/nuxt-precognition
+## License
 
-[license-src]: https://img.shields.io/npm/l/nuxt-precognition.svg?style=flat&colorA=020420&colorB=00DC82
-[license-href]: https://npmjs.com/package/nuxt-precognition
-
-[nuxt-src]: https://img.shields.io/badge/Nuxt-020420?logo=nuxt.js
-[nuxt-href]: https://nuxt.com
+MIT © [sot1986]

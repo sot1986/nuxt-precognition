@@ -10,16 +10,23 @@ const UserSchema = z.object({
   email: z.string().email(),
   password: z.string().min(8),
 })
-type User = z.infer<typeof UserSchema>
 
-const form = useForm((): User => ({
-  email: '',
-  password: '',
-}), (body, headers) => $fetch('/api/login', {
-  method: 'POST',
-  headers,
-  body,
-}))
+const form = useForm(
+  (): z.infer<typeof UserSchema> => ({
+    email: '',
+    password: '',
+  }),
+  (body, headers) => $fetch('/api/login', {
+    method: 'POST',
+    headers,
+    body,
+  }),
+  {
+    clientValidation(data) {
+      UserSchema.parse(data)
+    },
+  },
+)
 
 function reset() {
   form.reset()

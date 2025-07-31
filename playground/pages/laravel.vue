@@ -29,6 +29,11 @@ const postForm = useForm(
       headers,
       body: data,
     }),
+  {
+    clientValidation: (data) => {
+      postSchema.parse(data)
+    },
+  },
 )
 </script>
 
@@ -40,7 +45,7 @@ const postForm = useForm(
 
     <form
       class="flex flex-col gap-10 max-w-4xl mx-auto p-4"
-      @submit.prevent="postForm.submit"
+      @submit.prevent="postForm.submit()"
     >
       <label class="flex flex-col gap-2 relative">
         Title

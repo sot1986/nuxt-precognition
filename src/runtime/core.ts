@@ -91,9 +91,24 @@ export function makeLaravelValidationErrorParser(): ValidationErrorParser {
   return error => (hasResponse(error) && hasValidationStatusCode(error.response) && hasLaravelValidationErrorsData(error.response)) ? error.response._data : null
 }
 
+/**
+ * Asserts that the response is a successful precognitive response.
+ * It runs check only if the response is OK (status 200-299) and the precognition header is set to true.
+ * Use this function to prevent false positives when the response is not a precognitive response.
+ *
+ * @param ctx The context object.
+ * @param ctx.options The options object containing headers.
+ * @param ctx.options.headers Optional headers for the request.
+ * @param ctx.response The response object to validate.
+ * @throws {Error} If the response does not have the expected precognition headers or status.
+ */
 export function assertSuccessfulPrecognitiveResponses(
   ctx: { options: { headers?: HeadersInit }, response: Response },
 ) {
+  if (!ctx.response.ok) {
+    return
+  }
+
   if ((new Headers(ctx.options.headers)).get('Precognition') !== 'true') {
     return
   }
@@ -101,11 +116,13 @@ export function assertSuccessfulPrecognitiveResponses(
   const { status, headers } = ctx.response
   const hasPrecognitionHeader = headers.get('Precognition') === 'true'
   const hasPrecognitionSuccessHeader = headers.get('Precognition-Success') === 'true'
+  const hasNoContentStatus = status === 204
 
-  const isSuccess = hasPrecognitionHeader && hasPrecognitionSuccessHeader && status === 204
-  const isValidationError = hasPrecognitionHeader && status === 422
+  const isSuccess = hasPrecognitionHeader && hasPrecognitionSuccessHeader && hasNoContentStatus
 
-  if (!(isSuccess || isValidationError)) {
-    throw createError({ message: 'Did not receive a Precognition response. Ensure you have the Precognition middleware in place for the route and Precognitive headers have been enabled in config/cors.php.', statusCode: 500 })
+  if (!(isSuccess)) {
+    const message = 'Did not receive a Precognition response. Ensure you have the Precognition middleware in place for the route and Precognitive headers have been enabled in config/cors.php.'
+    console.error(message, { ctx, response: ctx.response })
+    throw createError({ message, statusCode: 500 })
   }
 }
