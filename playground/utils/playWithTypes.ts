@@ -1,4 +1,4 @@
-import type { NestedKeyOf } from './types/utils'
+import type { NestedKeyOf } from '../../src/runtime/types/utils'
 
 interface Model {
   id: string
