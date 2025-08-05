@@ -66,7 +66,8 @@ import type {ClientStatusHandlers} from '${resolver.resolve('./runtime/types/for
 interface NuxtPrecognition {
   $precognition: {
     errorParsers: ValidationErrorParser[],
-    statusHandlers: ClientStatusHandlers
+    statusHandlers: ClientStatusHandlers,
+    assertSuccessfulPrecognitiveResponses: (ctx: { options: { headers?: HeadersInit }, response: Response }) => void
   }
 }
 
