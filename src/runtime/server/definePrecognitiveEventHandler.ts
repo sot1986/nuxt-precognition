@@ -6,8 +6,8 @@ import type { ErrorStatusCode } from '../types/utils'
 import { useRuntimeConfig, defineEventHandler, setResponseHeader, createError, setResponseStatus } from '#imports'
 
 function definePrecognitiveEventHandler<
-TRequest extends EventHandlerRequest,
-TResponse,
+  TRequest extends EventHandlerRequest,
+  TResponse,
 >(
   handler: EventHandlerObject<TRequest, TResponse>,
   options?: {
@@ -78,7 +78,7 @@ function onPrecognitiveRequestWrapper<T extends EventHandlerRequest>(
 
       const statusHandler = (hasResponse(error) && options.statusHandlers)
         ? (options.statusHandlers[`${error.response.status}` as ErrorStatusCode]
-        ?? event.context.$precognition.statusHandlers[`${error.response.status}` as ErrorStatusCode])
+          ?? event.context.$precognition.statusHandlers[`${error.response.status}` as ErrorStatusCode])
         : undefined
 
       if (statusHandler) {
@@ -183,8 +183,8 @@ definePrecognitiveEventHandler.create = function <TRequest extends EventHandlerR
   const baseErrorParsers = [...(options.errorParsers ?? [])]
   const baseStatusHandlers = { ...options.statusHandlers }
   return <
-  TRequest extends EventHandlerRequest,
-  TResponse,
+    TRequest extends EventHandlerRequest,
+    TResponse,
   >(
     handler: EventHandlerObject<TRequest, TResponse>,
     options?: {

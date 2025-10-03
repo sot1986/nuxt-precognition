@@ -560,4 +560,57 @@ describe ('test useForm composable', () => {
     expect(form.error).toBeInstanceOf(Error)
     expect(form.error?.message).toBe(message)
   })
+
+  it('calls the clientValidation if provided on submit after the onStart hook', async () => {
+    const initialData = {
+      name: 'John Doe',
+      email: 'john@email.it',
+    }
+    let step = 0
+    const steps = {
+      onStart: -1,
+      clientValidation: -1,
+      onBefore: -1,
+      onFinish: -1,
+      cb: -1,
+    }
+
+    function setStep(name: keyof typeof steps) {
+      steps[name] = step++
+    }
+    const cb = () => {
+      setStep('cb')
+      return Promise.resolve()
+    }
+    const clientValidation = () => {
+      setStep('clientValidation')
+      return Promise.resolve()
+    }
+
+    const onBefore = () => {
+      setStep('onBefore')
+      return true
+    }
+    const onStart = () => {
+      setStep('onStart')
+      return Promise.resolve()
+    }
+    const onSuccess = () => {
+      setStep('onFinish')
+      return Promise.resolve()
+    }
+    const form = useForm(initialData, cb, { clientValidation })
+
+    await form.submit({
+      onBefore,
+      onStart,
+      onSuccess,
+    })
+
+    expect(steps.onBefore).toBe(0)
+    expect(steps.onStart).toBe(1)
+    expect(steps.clientValidation).toBe(2)
+    expect(steps.cb).toBe(3)
+    expect(steps.onFinish).toBe(4)
+  })
 })

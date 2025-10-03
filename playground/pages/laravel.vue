@@ -7,34 +7,92 @@ defineOptions({
   inheritAttrs: false,
 })
 
+/**
+ * Post schema. Defined using Zod.
+ * Add specific file validations because it is
+ * sent during precognitive validation request. *
+ */
 const postSchema = z.object({
-  id: z.number(),
-  title: z.string(),
-  content: z.string(),
+  title: z.string().min(5).max(100),
+  content: z.string().min(10).max(1000),
   friends: z.array(z.string()),
+  image: z.instanceof(File)
+    .refine(file => file.size <= 10 * 1024 * 1024, {
+      message: 'File size must be less than 10MB',
+    })
+    .refine(file => ['image/jpeg', 'image/png', 'image/gif'].includes(file.type), {
+      message: 'File must be JPEG, PNG, or GIF',
+    })
+    .refine(file => file.name.length > 0, {
+      message: 'File must have a name',
+    })
+    .refine(file => !!file.name.match(/^[a-z0-9]+\.[a-z0-9]+$/i), {
+      message: 'File name must be alphanumeric with an extension. No spaces or special characters.',
+    })
+    .nullable(),
 })
 type Post = z.infer<typeof postSchema>
 
-const selectedPost = ref<Post | null>(null)
-
+/**
+ * Use the global $api to make backend request (to Laravel for example) defined in Nuxt Plugin.
+ * It includes already Zod parser for validation errors.
+ */
 const { $api } = useNuxtApp()
 
+/**
+ * Define the form using useForm composable.
+ * The second argument is a function to submit the form data to the backend. Being complete agnostic,
+ * the headers to submit form data must be specified. Precognnitive header are already present.
+ * Here we use FormData to handle file upload.
+ * Client-side validation is specified in the UseFormOptions.
+ */
 const postForm = useForm(
-  () => selectedPost.value
-    ? { ...selectedPost.value }
-    : { title: '', content: '', friends: [] },
-  (data, headers) => $api(
-    '/api/posts' + (selectedPost.value ? `/${selectedPost.value.id}` : ''), {
-      method: selectedPost.value ? 'PUT' : 'POST',
-      headers,
-      body: data,
-    }),
+  (): Post => ({ title: '', content: '', friends: [], image: null }),
+  (data, headers) => {
+    const formData = new FormData()
+    formData.append('title', data.title)
+    formData.append('content', data.content)
+    data.friends.forEach((friend, index) => {
+      formData.append(`friends[${index}]`, friend)
+    })
+    if (data.image) {
+      formData.append('image', data.image)
+    }
+    headers.set('Content-Type', 'multipart/form-data')
+    return $api(
+      '/api/posts', {
+        method: 'POST',
+        headers,
+        body: formData,
+      })
+  },
   {
-    clientValidation: (data) => {
-      postSchema.parse(data)
-    },
+    clientValidation: postSchema.parse,
+    validateFiles: false, // Set to true if needed
   },
 )
+
+function addImage(e: Event) {
+  postForm.image = null
+  postForm.forgetErrors('image')
+  const input = e.target as HTMLInputElement
+  if (input.files && input.files[0]) {
+    postForm.image = input.files[0]
+    postForm.validate('image')
+  }
+}
+
+function handleSubmit() {
+  postForm.submit({
+    onBefore() {
+      postForm.forgetErrors()
+      return true
+    },
+    onStart: (data) => {
+      postSchema.parse(data)
+    },
+  })
+}
 </script>
 
 <template>
@@ -45,7 +103,7 @@ const postForm = useForm(
 
     <form
       class="flex flex-col gap-10 max-w-4xl mx-auto p-4"
-      @submit.prevent="postForm.submit()"
+      @submit.prevent="handleSubmit"
     >
       <label class="flex flex-col gap-2 relative">
         Title
@@ -76,6 +134,20 @@ const postForm = useForm(
         >OK</div>
         <p v-if="postForm.invalid('content')">{{ postForm.errors.content }}</p>
       </label>
+
+      <label for="image">Image</label>
+
+      <input
+        id="image"
+        type="file"
+        @change="addImage"
+      >
+      <div v-if="postForm.valid('image')">
+        OK
+      </div>
+      <p v-if="postForm.invalid('image')">
+        {{ postForm.errors.image }}
+      </p>
 
       <button
         class="bg-indigo-600 text-white px-4 py-2 rounded-md mx-auto hover:bg-indigo-500"

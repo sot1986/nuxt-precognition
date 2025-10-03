@@ -1,26 +1,10 @@
-import { ZodError } from 'zod'
 import { defineNuxtPlugin, useNuxtApp } from '#imports'
+import { zodPrecognitionErrorParser } from '~/utils/zodErrorParser'
 
 export default defineNuxtPlugin(() => {
   const { $precognition } = useNuxtApp()
 
-  $precognition.errorParsers.push(
-    (error) => {
-      if (error instanceof ZodError) {
-        const errors = {} as Record<string, string[]>
-        error.errors.forEach((e) => {
-          const key = e.path.join('.')
-          if (key in errors) {
-            errors[key].push(e.message)
-            return
-          }
-          errors[key] = [e.message]
-        })
-        return { errors, message: 'Validation error' }
-      }
-      return null
-    },
-  )
+  $precognition.errorParsers.push(zodPrecognitionErrorParser)
 
   $precognition.statusHandlers = {
     401: async (error, form) => {

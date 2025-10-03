@@ -113,18 +113,18 @@ type ValidationErrorParser = (error: Error) => ValidationErrorsData | undefined 
 // app/utils/precognition.ts or shared/utils/precognition.ts
 import { ZodError } from 'zod'
 
-export const zodErrorParser: ValidationErrorParser = (error) => {
+export const zodPrecognitionErrorParser: ValidationErrorParser = (error) => {
   if (error instanceof ZodError) {
-    const errors = {} as Record<string, string[]>
-    error.errors.forEach((e) => {
-      const key = e.path.join('.')
+    const errors: Record<string, string[]> = {}
+    for (const issue of error.issues) {
+      const key = issue.path.join('.')
       if (key in errors) {
-        errors[key].push(e.message)
-        return
+        errors[key].push(issue.message)
+        continue
       }
-      errors[key] = [e.message]
-    })
-    return { errors, message: 'Validation error' }
+      errors[key] = [issue.message]
+    }
+    return { errors, message: error.message }
   }
   return null
 }

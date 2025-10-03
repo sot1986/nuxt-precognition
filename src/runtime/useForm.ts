@@ -72,6 +72,12 @@ export function useForm<TData extends object, TResp>(
         if (o?.onStart)
           await o.onStart(data)
 
+        if (options?.clientValidation) {
+          form.validating = true
+          await options.clientValidation(data)
+          form.validating = false
+        }
+
         const resp = await cb(data, o?.headers ?? new Headers())
 
         if (o?.onSuccess)
@@ -172,7 +178,7 @@ export function useForm<TData extends object, TResp>(
 useForm.create = <TData extends object, TResp>(
   _options?: UseFormOptions<TData>,
 ) => (
-    init: TData | (() => TData),
-    cb: (form: TData, precognitiveHeaders: Headers) => Promise<TResp>,
-    options?: UseFormOptions<TData>,
-  ) => useForm(init, cb, { ..._options, ...options })
+  init: TData | (() => TData),
+  cb: (form: TData, precognitiveHeaders: Headers) => Promise<TResp>,
+  options?: UseFormOptions<TData>,
+) => useForm(init, cb, { ..._options, ...options })
