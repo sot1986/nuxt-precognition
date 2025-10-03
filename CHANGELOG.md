@@ -1,6 +1,18 @@
 # Changelog
 
 
+## v0.1.2
+
+[compare changes](https://github.com/sot1986/nuxt-precognition/compare/v0.1.1...v0.1.2)
+
+### 🏡 Chore
+
+- **release:** V0.1.1 ([7260cbc](https://github.com/sot1986/nuxt-precognition/commit/7260cbc))
+
+### ❤️ Contributors
+
+- Sot1986 <matteo.presot@gmail.com>
+
 ## v0.1.1
 
 [compare changes](https://github.com/sot1986/nuxt-precognition/compare/v0.1.1...v0.1.1)
