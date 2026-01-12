@@ -54,7 +54,7 @@ export interface Form<TData extends object, Tresp> {
 
 export type ClientStatusHandlers = Partial<Record<ErrorStatusCode, <TData extends object, TResp>(error: Error & { response: Response }, form: TData & Form<TData, TResp>) => void | Promise<void>>>
 
-export interface UseFormOptions<TData extends object> {
+export interface UseFormOptions<TData extends object, TResp> {
   /**
    * Headers to be sent along with the precognition request (e.g. for authentication purposes).
    */
@@ -105,7 +105,7 @@ export interface UseFormOptions<TData extends object> {
   /**
    * Any custom error parser that should specifically be used for this form instance when handling validation errors.
    */
-  clientErrorParsers?: ValidationErrorParser[]
+  clientErrorParsers?: ValidationErrorParser<TResp>[]
   /**
    * Handlers for specific client status codes.
    */

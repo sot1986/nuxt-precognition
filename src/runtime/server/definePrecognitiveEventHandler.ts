@@ -11,7 +11,7 @@ function definePrecognitiveEventHandler<
 >(
   handler: EventHandlerObject<TRequest, TResponse>,
   options?: {
-    errorParsers?: ValidationErrorParser[]
+    errorParsers?: ValidationErrorParser<TResponse>[]
     statusHandlers?: ServerStatusHandlers
   },
 ): EventHandler<TRequest, TResponse> {
@@ -22,10 +22,10 @@ function definePrecognitiveEventHandler<
   })
 }
 
-function onPrecognitiveRequest<T extends EventHandlerRequest>(
+function onPrecognitiveRequest<T extends EventHandlerRequest, TResponse>(
   onRequest: _RequestMiddleware<T> | _RequestMiddleware<T>[] | undefined,
   options?: {
-    errorParsers?: ValidationErrorParser[]
+    errorParsers?: ValidationErrorParser<TResponse>[]
     statusHandlers?: ServerStatusHandlers
   },
 ) {
@@ -56,10 +56,10 @@ function onPrecognitiveRequest<T extends EventHandlerRequest>(
   ))
 }
 
-function onPrecognitiveRequestWrapper<T extends EventHandlerRequest>(
+function onPrecognitiveRequestWrapper<T extends EventHandlerRequest, TResp>(
   middleware: _RequestMiddleware<T>,
   options: {
-    errorParsers: ValidationErrorParser[]
+    errorParsers: ValidationErrorParser<TResp>[]
     statusHandlers?: ServerStatusHandlers
   },
 ): _RequestMiddleware<T> {

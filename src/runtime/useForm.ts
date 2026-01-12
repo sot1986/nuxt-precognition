@@ -9,7 +9,7 @@ import { reactive, toRaw } from '#imports'
 export function useForm<TData extends object, TResp>(
   init: TData | (() => TData),
   cb: (form: TData, precognitiveHeaders: Headers) => Promise<TResp>,
-  options?: UseFormOptions<TData>,
+  options?: UseFormOptions<TData, TResp>,
 ): TData & Form<TData, TResp> {
   const keys: (keyof TData)[] = Object.keys(resolveDynamicObject(init)) as (keyof TData)[]
 
@@ -80,6 +80,9 @@ export function useForm<TData extends object, TResp>(
 
         const resp = await cb(data, o?.headers ?? new Headers())
 
+        if (validator.responseParsers.length)
+          validator.responseParsers.forEach(p => p(resp))
+
         if (o?.onSuccess)
           await o.onSuccess(resp, data)
       }
@@ -96,7 +99,7 @@ export function useForm<TData extends object, TResp>(
 
         form.error = err
 
-        const errorsData = resolveValidationErrorData(err, validator.errorParsers)
+        const errorsData = resolveValidationErrorData<TResp>(err, validator.errorParsers)
 
         if (errorsData) {
           form.setErrors(errorsData)
@@ -176,9 +179,9 @@ export function useForm<TData extends object, TResp>(
 }
 
 useForm.create = <TData extends object, TResp>(
-  _options?: UseFormOptions<TData>,
+  _options?: UseFormOptions<TData, TResp>,
 ) => (
   init: TData | (() => TData),
   cb: (form: TData, precognitiveHeaders: Headers) => Promise<TResp>,
-  options?: UseFormOptions<TData>,
+  options?: UseFormOptions<TData, TResp>,
 ) => useForm(init, cb, { ..._options, ...options })

@@ -4,6 +4,7 @@ import { useForm } from '../../src/runtime/useForm'
 import type { Config } from '../../src/runtime/types/config'
 import type { NuxtPrecognitiveError, NuxtPrecognitiveErrorResponse } from './types'
 import type { ClientStatusHandlers } from '~/src/runtime/types/form'
+import type { ValidationErrorsData } from '#build/types/nuxt-precognition'
 
 describe ('test useForm composable', () => {
   const initialData = () => ({
@@ -612,5 +613,107 @@ describe ('test useForm composable', () => {
     expect(steps.clientValidation).toBe(2)
     expect(steps.cb).toBe(3)
     expect(steps.onFinish).toBe(4)
+  })
+
+  it('parses positive responses looking for errors during validation', async () => {
+    const initialData = {
+      name: 'John Doe',
+      email: 'john@email.it',
+    }
+
+    const cb = () => Promise.resolve({
+      data: null as null | { success: true },
+      errors: [
+        {
+          path: 'name',
+          message: 'John Doe is already used',
+        },
+      ] as { path: string, message: string }[] | undefined,
+    })
+
+    const form = useForm(initialData, cb, {
+      clientErrorParsers: [
+        {
+          responseParser: (response) => {
+            console.log('parsing response', response)
+            if (response.errors?.length) {
+              throw new Error(JSON.stringify(response.errors))
+            }
+          },
+          errorParser: (error) => {
+            const errors = JSON.parse(error.message) as { path: string, message: string }[]
+            const data: ValidationErrorsData = {
+              message: 'Validation error',
+              errors: {},
+            }
+            errors.forEach((err) => {
+              data.errors[err.path] = err.message
+            })
+            return data
+          },
+        },
+      ],
+    })
+    const resp = form.validate('name')
+    await vi.runOnlyPendingTimersAsync()
+    console.log(resp)
+
+    expect(form.errors.name).toBe('John Doe is already used')
+  })
+
+  it('parses positive responses looking for errors at form submission', async () => {
+    const initialData = {
+      name: 'John Doe',
+      email: 'john@email.it',
+    }
+
+    const cb = () => Promise.resolve({
+      data: null as null | { success: true },
+      errors: [
+        {
+          path: 'name',
+          message: 'John Doe is already used',
+        },
+      ] as { path: string, message: string }[] | undefined,
+    })
+
+    const form = useForm(initialData, cb, {
+      clientErrorParsers: [
+        {
+          responseParser: (response) => {
+            console.log('parsing response', response)
+            if (response.errors?.length) {
+              throw new Error(JSON.stringify(response.errors))
+            }
+          },
+          errorParser: (error) => {
+            const errors = JSON.parse(error.message) as { path: string, message: string }[]
+            const data: ValidationErrorsData = {
+              message: 'Validation error',
+              errors: {},
+            }
+            errors.forEach((err) => {
+              data.errors[err.path] = err.message
+            })
+            return data
+          },
+        },
+      ],
+    })
+    await form.submit({
+      onError(error, data) {
+        expect(error.message).toBe(JSON.stringify([
+          {
+            path: 'name',
+            message: 'John Doe is already used',
+          },
+        ]))
+        expect(data).toEqual(initialData)
+      },
+      onSuccess() {
+        expect(false).toBe(true)
+      },
+    })
+    expect(form.errors.name).toBe('John Doe is already used')
   })
 })

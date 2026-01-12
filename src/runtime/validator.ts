@@ -9,10 +9,11 @@ import { useNuxtApp, useRuntimeConfig } from '#imports'
 
 export function makeValidator<TData extends object, TResp>(
   cb: (data: TData, precognitiveHeaders: Headers) => Promise<TResp>,
-  options?: UseFormOptions<TData>,
+  options?: UseFormOptions<TData, TResp>,
 ): {
     validate: DebouncedFuncLeading<(form: Form<TData, TResp>, ...keys: NestedKeyOf<TData>[]) => Promise<void>>
-    errorParsers: ValidationErrorParser[]
+    errorParsers: ValidationErrorParser<TResp>[]
+    responseParsers: ((resp: TResp) => unknown)[]
     setValidateFiles: (value: boolean) => void
     statusHandlers: ClientStatusHandlers
   } {
@@ -28,6 +29,8 @@ export function makeValidator<TData extends object, TResp>(
     errorParsers.push(makeLaravelValidationErrorParser())
   if (validateOptions.enableNuxtClientErrorParser)
     errorParsers.push(makeNuxtValidationErrorParser())
+
+  const responseParsers = errorParsers.filter(p => typeof p === 'object').map(p => p.responseParser)
 
   const statusHandlers = { ...$precognition.statusHandlers, ...options?.statusHandlers }
   const validate = debounce(
@@ -50,11 +53,14 @@ export function makeValidator<TData extends object, TResp>(
 
         const backendValidation = validateOptions.backendValidation
           ? cb
-          : () => Promise.resolve()
-        await backendValidation(
+          : () => Promise.resolve(undefined)
+        const resp = await backendValidation(
           (validateOptions.validateFiles) ? data : withoutFiles(data),
           headers,
         )
+        if (responseParsers.length)
+          responseParsers.forEach(p => typeof resp === 'undefined' ? undefined : p(resp))
+
         form.forgetErrors(...keys)
         form.touch(...keys)
         const onSuccess = (validateOptions?.onValidationSuccess ?? (() => undefined))
@@ -74,7 +80,7 @@ export function makeValidator<TData extends object, TResp>(
 
         form.error = err
 
-        const errorData = resolveValidationErrorData(err, errorParsers)
+        const errorData = resolveValidationErrorData<TResp>(err, errorParsers)
 
         if (errorData) {
           form.setErrors(errorData)
@@ -99,6 +105,7 @@ export function makeValidator<TData extends object, TResp>(
   return {
     validate,
     errorParsers,
+    responseParsers,
     statusHandlers,
     setValidateFiles,
   }

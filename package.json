@@ -8,7 +8,7 @@
     "email": "sot@8dplus.com"
   },
   "license": "MIT",
-  "homepage": "https://github.com/sot1986/nuxt-precognition",
+  "homepage": "https://precognition.presot-studio.it",
   "repository": {
     "type": "git",
     "url": "https://github.com/sot1986/nuxt-precognition"
@@ -17,7 +17,9 @@
     "precognition",
     "nuxt",
     "laravel",
-    "zod"
+    "zod",
+    "appsync",
+    "validation"
   ],
   "exports": {
     ".": {

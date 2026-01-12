@@ -77,10 +77,13 @@ export function isFile(value: unknown): value is Blob | File | FileList {
     : false
 }
 
-export function resolveValidationErrorData(error: Error, parsers: ValidationErrorParser[]) {
+export function resolveValidationErrorData<TResp>(error: Error, parsers: ValidationErrorParser<TResp>[]) {
   return parsers.reduce<ValidationErrorsData | undefined | null>(
-    (errors, parser) => errors ?? parser(error), null,
-  )
+    (errors, parser) => errors ?? (
+      typeof parser === 'function'
+        ? parser(error)
+        : parser.errorParser(error)
+    ), null)
 }
 
 export function makeNuxtValidationErrorParser(): ValidationErrorParser {

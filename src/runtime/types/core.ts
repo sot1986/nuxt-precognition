@@ -5,6 +5,9 @@ export interface ValidationErrorsData {
   errors: ValidationErrors
 }
 
-export type ValidationErrorParser = (error: Error) => ValidationErrorsData | undefined | null
+export type ValidationErrorParser<TResp = unknown> = ((error: Error) => ValidationErrorsData | undefined | null) | {
+  errorParser: (error: Error) => ValidationErrorsData | undefined | null
+  responseParser: (resp: TResp) => unknown
+}
 
 export {}
