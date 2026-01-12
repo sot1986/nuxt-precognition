@@ -1,6 +1,18 @@
 # Changelog
 
 
+## v0.1.3
+
+[compare changes](https://github.com/sot1986/nuxt-precognition/compare/v0.1.2...v0.1.3)
+
+### 🩹 Fixes
+
+- Add response parsing for errors ([bace2d3](https://github.com/sot1986/nuxt-precognition/commit/bace2d3))
+
+### ❤️ Contributors
+
+- Sot1986 <matteo.presot@gmail.com>
+
 ## v0.1.2
 
 [compare changes](https://github.com/sot1986/nuxt-precognition/compare/v0.1.1...v0.1.2)
