@@ -52,13 +52,7 @@ const form = useForm(
 
 ---
 
-## Features
-
-- Laravel compliant
-- Validation library agnostic
-- Client and server side validation
-- TypeScript support
-- Customizable error parsing and status handling
+[Official Documentation](https://precognition.presot-studio.it/)
 
 ---
 
