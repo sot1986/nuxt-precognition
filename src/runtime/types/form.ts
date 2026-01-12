@@ -3,9 +3,31 @@ import type { NestedKeyOf, ErrorStatusCode } from './utils'
 
 interface SubmitOptions<TData extends object, TResp> {
   headers?: Headers
+  /**
+   * callback triggered when error is captured
+   * @param error
+   * @param data
+   * @returns
+   */
   onError?: (error: Error, data: TData) => Promise<void> | void
+  /**
+   * first lifecycle hook. Useful to prevent request submission.
+   * @param data
+   * @returns
+   */
   onBefore?: (data: TData) => Promise<boolean> | boolean
+  /**
+   * callback triggered before starting the request.
+   * @param data
+   * @returns
+   */
   onStart?: (data: TData) => Promise<void> | void
+  /**
+   * callback triggered when no errors.
+   * @param resp
+   * @param data
+   * @returns
+   */
   onSuccess?: (resp: TResp, data: TData) => Promise<void> | void
 }
 

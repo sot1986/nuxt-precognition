@@ -19,4 +19,18 @@ export default definePrecognitiveEventHandler({
       },
     }
   },
+}, {
+  errorParsers: [
+    (error) => {
+      if (error instanceof z.ZodError) {
+        return {
+          message: 'Invalid data',
+          errors: error.issues.map(issue => ({
+            path: issue.path.join('.'),
+            message: issue.message,
+          })),
+        }
+      }
+    },
+  ],
 })

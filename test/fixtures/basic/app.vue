@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { User } from './schemas/user'
-import { onMounted, useForm } from '#imports'
+import { useForm } from '#imports'
 
 type NewUser = Pick<User, 'name' | 'email'>
 
@@ -15,17 +15,7 @@ const form = useForm(
     '/api/users',
     { method: 'POST', body: data, headers },
   ),
-  {
-    onBeforeValidation(data) {
-      console.log('onBeforeValidation', data)
-      return true
-    },
-  },
 )
-
-onMounted(() => {
-  console.log('onMounted')
-})
 </script>
 
 <template>
