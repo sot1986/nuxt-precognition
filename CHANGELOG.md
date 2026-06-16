@@ -1,6 +1,18 @@
 # Changelog
 
 
+## v0.1.7
+
+[compare changes](https://github.com/sot1986/nuxt-precognition/compare/v0.1.6...v0.1.7)
+
+### 🩹 Fixes
+
+- Improve NestedKeyOf type helper ([cf5cffa](https://github.com/sot1986/nuxt-precognition/commit/cf5cffa))
+
+### ❤️ Contributors
+
+- Sot1986 <matteo.presot@gmail.com>
+
 ## v0.1.6
 
 [compare changes](https://github.com/sot1986/nuxt-precognition/compare/v0.1.5...v0.1.6)
