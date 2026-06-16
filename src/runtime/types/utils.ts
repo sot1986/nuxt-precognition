@@ -22,7 +22,7 @@ export type NestedKeyOf<T> = T extends Partial<Record<infer Key, unknown>>
     : T extends CallableFunction
       ? never
       : Key extends string | number
-        ? (ObjectKeys<T> | (T[Key] extends object
+        ? (ObjectKeys<T> | (T[Key] extends object | null | undefined
             ? `${ObjectKeys<Pick<T, Key>>}.${NestedKeyOf<T[Key]>}`
             : T extends unknown[]
               ? T extends [unknown, ...unknown[]]
