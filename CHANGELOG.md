@@ -1,6 +1,10 @@
 # Changelog
 
 
+## v0.1.6
+
+[compare changes](https://github.com/sot1986/nuxt-precognition/compare/v0.1.5...v0.1.6)
+
 ## v0.1.5
 
 [compare changes](https://github.com/sot1986/nuxt-precognition/compare/v0.1.4...v0.1.5)
