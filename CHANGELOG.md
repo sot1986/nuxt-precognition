@@ -1,6 +1,18 @@
 # Changelog
 
 
+## v0.1.5
+
+[compare changes](https://github.com/sot1986/nuxt-precognition/compare/v0.1.4...v0.1.5)
+
+### 🩹 Fixes
+
+- Reset validating flag when exiting from callback ([7a91fc0](https://github.com/sot1986/nuxt-precognition/commit/7a91fc0))
+
+### ❤️ Contributors
+
+- Sot1986 <matteo.presot@gmail.com>
+
 ## v0.1.4
 
 [compare changes](https://github.com/sot1986/nuxt-precognition/compare/v0.1.3...v0.1.4)
