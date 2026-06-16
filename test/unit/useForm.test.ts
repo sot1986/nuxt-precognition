@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, it, vi, expect } from 'vitest'
 import { reactive, toRaw } from 'vue'
+import * as z from 'zod'
 import { useForm } from '../../src/runtime/useForm'
 import type { Config } from '../../src/runtime/types/config'
 import type { NuxtPrecognitiveError, NuxtPrecognitiveErrorResponse } from './types'
@@ -715,5 +716,50 @@ describe ('test useForm composable', () => {
       },
     })
     expect(form.errors.name).toBe('John Doe is already used')
+  })
+
+  it('it can clear field specific errors after submission with validate method if new value is valid', async () => {
+    const initialData = { name: '' }
+
+    const form = useForm(initialData, () => Promise.resolve('success'), {
+      clientErrorParsers: [(error) => {
+        if (error instanceof z.ZodError) {
+          return {
+            message: 'Validation error',
+            errors: error.issues?.reduce((acc, issue) => {
+              acc[issue.path[0]! as string] = issue.message
+              return acc
+            }, {} as Record<string, string>),
+          }
+        }
+      }],
+      clientValidation: data => z.object({ name: z.string().min(5) }).parse(data),
+    })
+
+    function submit() {
+      return new Promise<void>((resolve, reject) => {
+        form.submit({
+          onError() {
+            resolve()
+          },
+          onSuccess() {
+            reject('Should not be called')
+          },
+        })
+      })
+    }
+
+    await submit()
+
+    expect(form.errors.name).toBeTruthy()
+    expect(form.invalid('name')).toBe(true)
+
+    form.name = 'New name'
+    form.validate('name')
+
+    await vi.runOnlyPendingTimersAsync()
+
+    expect(form.invalid('name')).toBe(false)
+    expect(form.errors.name).toBeUndefined()
   })
 })

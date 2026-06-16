@@ -111,6 +111,7 @@ export function useForm<TData extends object, TResp>(
       }
       finally {
         form.processing = false
+        form.validating = false
       }
     },
     valid: (...keys) => {
