@@ -31,6 +31,10 @@ interface SubmitOptions<TData extends object, TResp> {
   onSuccess?: (resp: TResp, data: TData) => Promise<void> | void
 }
 
+interface AsyncSubmitOptions {
+  headers?: Headers
+}
+
 export interface Form<TData extends object, Tresp> {
   data: () => TData
   setData: (data: TData) => TData & Form<TData, Tresp>
@@ -43,6 +47,7 @@ export interface Form<TData extends object, Tresp> {
   validate: (...keys: NestedKeyOf<TData>[]) => TData & Form<TData, Tresp>
   reset: () => TData & Form<TData, Tresp>
   submit: (options?: SubmitOptions<TData, Tresp>) => Promise<void>
+  asyncSubmit: (options?: AsyncSubmitOptions) => Promise<Tresp>
   valid: (...keys: (NestedKeyOf<TData>)[]) => boolean
   invalid: (...keys: (NestedKeyOf<TData>)[]) => boolean
   touched: (...keys: (NestedKeyOf<TData>)[]) => boolean

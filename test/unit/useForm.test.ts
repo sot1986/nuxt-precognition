@@ -762,4 +762,53 @@ describe ('test useForm composable', () => {
     expect(form.invalid('name')).toBe(false)
     expect(form.errors.name).toBeUndefined()
   })
+
+  describe('asyncSubmit', () => {
+    it('returns response on success', async () => {
+      const form = useForm({ name: 'John' }, (_data, headers) => {
+        expect(headers.get('X-Test')).toBe('true')
+        return Promise.resolve({ success: true, id: 123 })
+      })
+
+      const headers = new Headers({ 'X-Test': 'true' })
+      const result = await form.asyncSubmit({ headers })
+
+      expect(result).toEqual({ success: true, id: 123 })
+      expect(form.processing).toBe(false)
+      expect(form.error).toBeNull()
+    })
+
+    it('executes clientValidation and throws error while setting form errors on failure', async () => {
+      const form = useForm({ name: 'John' }, () => Promise.resolve('ok'), {
+        clientValidation: () => {
+          const err = new Error('Zod validation error')
+          throw err
+        },
+        clientErrorParsers: [
+          () => ({
+            message: 'Zod validation failed',
+            errors: { name: 'Name is invalid' },
+          }),
+        ],
+      })
+
+      await expect(form.asyncSubmit()).rejects.toThrow('Zod validation error')
+
+      expect(form.errors.name).toBe('Name is invalid')
+      expect(form.invalid('name')).toBe(true)
+      expect(form.processing).toBe(false)
+    })
+
+    it('sets form errors and throws backend response errors', async () => {
+      const error = makeNuxtPrecognitiveError({ email: 'The email field is required.' })
+      const form = useForm({ email: '' }, () => Promise.reject(error))
+
+      await expect(form.asyncSubmit()).rejects.toThrow('error')
+
+      expect(form.errors.email).toBe('The email field is required.')
+      expect(form.invalid('email')).toBe(true)
+      expect(form.error?.message).toBe('error')
+      expect(form.processing).toBe(false)
+    })
+  })
 })

@@ -66,11 +66,29 @@ export function useForm<TData extends object, TResp>(
         if (!onBefore)
           return
 
-        form.processing = true
-        form.error = null
-
         if (o?.onStart)
           await o.onStart(data)
+
+        const resp = await form.asyncSubmit({ headers: o?.headers })
+
+        if (o?.onSuccess)
+          await o.onSuccess(resp as TResp, data)
+      }
+      catch (error) {
+        const err = error instanceof Error ? error : new Error('Invalid form')
+
+        if (o?.onError)
+          await o.onError(err, data)
+      }
+    },
+    async asyncSubmit(o) {
+      if (form.processing)
+        throw new Error('Form is already processing.')
+
+      const data = form.data()
+      try {
+        form.processing = true
+        form.error = null
 
         if (options?.clientValidation) {
           form.validating = true
@@ -83,8 +101,7 @@ export function useForm<TData extends object, TResp>(
         if (validator.responseParsers.length)
           validator.responseParsers.forEach(p => p(resp))
 
-        if (o?.onSuccess)
-          await o.onSuccess(resp, data)
+        return resp
       }
       catch (error) {
         const err = error instanceof Error ? error : new Error('Invalid form')
@@ -94,7 +111,8 @@ export function useForm<TData extends object, TResp>(
           : undefined
 
         if (statusHandler) {
-          return statusHandler(err as Error & { response: Response }, form)
+          await statusHandler(err as Error & { response: Response }, form)
+          throw err
         }
 
         form.error = err
@@ -106,8 +124,7 @@ export function useForm<TData extends object, TResp>(
           form.touch()
         }
 
-        if (o?.onError)
-          return o.onError(err, data)
+        throw err
       }
       finally {
         form.processing = false
