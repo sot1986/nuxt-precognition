@@ -173,9 +173,9 @@ describe ('test useForm composable', () => {
       },
     }
 
-    async function cb(data: typeof initialData, headers: Headers) {
-      expect(headers.get('Precognition')).toBe('true')
-      expect(headers.get('Precognition-Validate-Only')).toBe(expects.validateOnly)
+    async function cb(data: typeof initialData, headers: Record<string, string>) {
+      expect(headers.precognition).toBe('true')
+      expect(headers['precognition-validate-only']).toBe(expects.validateOnly)
       expects.data.keys.forEach((key, i) => {
         expect(data[key]).toEqual(expects.data.values[i])
       })
@@ -244,10 +244,10 @@ describe ('test useForm composable', () => {
       },
     }
 
-    async function cb(data: typeof initialData, headers: Headers) {
-      expect(headers.get('Precognition')).toBe('true')
+    async function cb(data: typeof initialData, headers: Record<string, string>) {
+      expect(headers.precognition).toBe('true')
       if (expects.validateOnly)
-        expect(headers.get('Precognition-Validate-Only')).toBe(expects.validateOnly)
+        expect(headers['precognition-validate-only']).toBe(expects.validateOnly)
       expects.data.keys.forEach((key, i) => {
         expect(data[key]).toEqual(expects.data.values[i])
       })
@@ -296,10 +296,10 @@ describe ('test useForm composable', () => {
     const expects = {
       validateOnly: '',
       count: 0,
-      expectation: (_value: typeof initialData, _headers: Headers) => undefined,
+      expectation: (_value: typeof initialData, _headers: Record<string, string>) => undefined,
     }
 
-    async function cb(data: typeof initialData, headers: Headers) {
+    async function cb(data: typeof initialData, headers: Record<string, string>) {
       expects.expectation(data, headers)
       expects.count++
       return Promise.resolve()
@@ -308,8 +308,8 @@ describe ('test useForm composable', () => {
     const form = useForm(initialData, cb, { validateFiles: true })
 
     expects.expectation = (data, headers) => {
-      expect(headers.get('Precognition')).toBe('true')
-      expect(headers.get('Precognition-Validate-Only')).toBe('avatar')
+      expect(headers.precognition).toBe('true')
+      expect(headers['precognition-validate-only']).toBe('avatar')
       expect(data.name).toBe('John Doe')
       expect(data.avatar).toBeInstanceOf(Blob)
     }
@@ -329,10 +329,10 @@ describe ('test useForm composable', () => {
     const expects = {
       validateOnly: '',
       count: 0,
-      expectation: (_value: typeof initialData, _headers: Headers) => undefined,
+      expectation: (_value: typeof initialData, _headers: Record<string, string>) => undefined,
     }
 
-    async function cb(data: typeof initialData, headers: Headers) {
+    async function cb(data: typeof initialData, headers: Record<string, string>) {
       expects.expectation(data, headers)
       expects.count++
       return Promise.resolve()
@@ -341,8 +341,8 @@ describe ('test useForm composable', () => {
     const form = useForm(initialData, cb, { validateFiles: false })
 
     expects.expectation = (data, headers) => {
-      expect(headers.get('Precognition')).toBe('true')
-      expect(headers.get('Precognition-Validate-Only')).toBe('avatar')
+      expect(headers.precognition).toBe('true')
+      expect(headers['precognition-validate-only']).toBe('avatar')
       expect(data.name).toBe('John Doe')
       expect(data.avatar).toBeInstanceOf(Blob)
     }
@@ -371,7 +371,7 @@ describe ('test useForm composable', () => {
       email: 'The email is required',
     })
 
-    async function cb(data: typeof initialData, _headers: Headers) {
+    async function cb(data: typeof initialData, _headers: Record<string, string>) {
       if (!data.name && !data.email)
         return Promise.reject(precognitiveFullError)
 
@@ -426,7 +426,7 @@ describe ('test useForm composable', () => {
       email: 'The email is required',
     })
 
-    async function cb(data: typeof initialData, _headers: Headers) {
+    async function cb(data: typeof initialData, _headers: Record<string, string>) {
       if (!data.name && !data.email)
         return Promise.reject(precognitiveFullError)
 
@@ -780,7 +780,7 @@ describe ('test useForm composable', () => {
   describe('asyncSubmit', () => {
     it('returns response on success', async () => {
       const form = useForm({ name: 'John' }, (_data, headers) => {
-        expect(headers.get('X-Test')).toBe('true')
+        expect(headers['x-test']).toBe('true')
         return Promise.resolve({ success: true, id: 123 })
       })
 
@@ -790,6 +790,16 @@ describe ('test useForm composable', () => {
       expect(result).toEqual({ success: true, id: 123 })
       expect(form.processing).toBe(false)
       expect(form.error).toBeNull()
+    })
+
+    it('accepts plain object headers Record<string, string>', async () => {
+      const form = useForm({ name: 'John' }, (_data, headers) => {
+        expect(headers['x-test']).toBe('plain-object')
+        return Promise.resolve('ok')
+      })
+
+      const result = await form.asyncSubmit({ headers: { 'X-Test': 'plain-object' } })
+      expect(result).toBe('ok')
     })
 
     it('executes clientValidation and throws error while setting form errors on failure', async () => {

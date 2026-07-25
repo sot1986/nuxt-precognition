@@ -8,7 +8,7 @@ import { reactive, toRaw } from '#imports'
 
 export function useForm<TData extends object, TResp>(
   init: TData | (() => TData),
-  cb: (form: TData, precognitiveHeaders: Headers) => Promise<TResp>,
+  cb: (form: TData, precognitiveHeaders: Record<string, string>) => Promise<TResp>,
   options?: UseFormOptions<TData, TResp>,
 ): TData & Form<TData, TResp> {
   const keys: (keyof TData)[] = Object.keys(resolveDynamicObject(init)) as (keyof TData)[]
@@ -17,7 +17,10 @@ export function useForm<TData extends object, TResp>(
     return cloneDeep(toRaw(resolveDynamicObject(init)))
   }
 
-  const validator = makeValidator(cb, options)
+  const validator = makeValidator(
+    (data, headers: Headers) => cb(data, Object.fromEntries(headers.entries())),
+    options,
+  )
 
   async function handleSubmit(o?: SubmitOptions<TData, TResp>): Promise<void> {
     if (form.processing)
@@ -100,7 +103,8 @@ export function useForm<TData extends object, TResp>(
           form.validating = false
         }
 
-        const resp = await cb(data, o?.headers ?? new Headers())
+        const h = new Headers(o?.headers)
+        const resp = await cb(data, Object.fromEntries(h.entries()))
 
         if (validator.responseParsers.length)
           validator.responseParsers.forEach(p => p(resp))
@@ -204,6 +208,6 @@ useForm.create = <TData extends object, TResp>(
   _options?: UseFormOptions<TData, TResp>,
 ) => (
   init: TData | (() => TData),
-  cb: (form: TData, precognitiveHeaders: Headers) => Promise<TResp>,
+  cb: (form: TData, precognitiveHeaders: Record<string, string>) => Promise<TResp>,
   options?: UseFormOptions<TData, TResp>,
 ) => useForm(init, cb, { ..._options, ...options })

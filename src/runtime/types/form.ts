@@ -2,7 +2,7 @@ import type { ValidationErrorParser, ValidationErrorsData } from './core'
 import type { NestedKeyOf, ErrorStatusCode } from './utils'
 
 export interface SubmitOptions<TData extends object, TResp> {
-  headers?: Headers
+  headers?: HeadersInit
   /**
    * callback triggered when error is captured
    * @param error
@@ -32,7 +32,7 @@ export interface SubmitOptions<TData extends object, TResp> {
 }
 
 export interface AsyncSubmitOptions {
-  headers?: Headers
+  headers?: HeadersInit
 }
 
 export interface Form<TData extends object, Tresp> {
@@ -63,7 +63,7 @@ export interface UseFormOptions<TData extends object, TResp> {
   /**
    * Headers to be sent along with the precognition request (e.g. for authentication purposes).
    */
-  validationHeaders?: Headers
+  validationHeaders?: HeadersInit
   /**
    * Timeout in milliseconds for the validation request.
    */
