@@ -1,3 +1,10 @@
+# [0.3.0](https://github.com/sot1986/nuxt-precognition/compare/v0.2.0...v0.3.0) (2026-07-25)
+
+
+### Features
+
+* **useForm:** change precognitiveHeaders callback parameter type to Record<string, string> ([9b64660](https://github.com/sot1986/nuxt-precognition/commit/9b6466072e640f74beea8e2acc113317f658d469))
+
 # [0.2.0](https://github.com/sot1986/nuxt-precognition/compare/v0.1.7...v0.2.0) (2026-07-25)
 
 
