@@ -42,6 +42,7 @@
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "test": "vitest run",
+    "test:unit": "vitest run test/unit",
     "test:watch": "vitest watch",
     "semantic-release": "semantic-release"
   },

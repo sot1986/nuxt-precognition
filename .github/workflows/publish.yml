@@ -30,7 +30,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm dev:prepare
       - run: pnpm lint
-      - run: pnpm test
+      - run: pnpm test:unit
       - run: pnpm build
 
       - name: Release
