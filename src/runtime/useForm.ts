@@ -1,5 +1,5 @@
 import { cloneDeep } from 'lodash-es'
-import type { Form, UseFormOptions } from './types/form'
+import type { Form, SubmitOptions, UseFormOptions } from './types/form'
 import { getAllNestedKeys, hasResponse, resolveDynamicObject, resolveValidationErrorData } from './core'
 import { makeValidator } from './validator'
 import type { NestedKeyOf, ErrorStatusCode } from './types/utils'
@@ -18,6 +18,33 @@ export function useForm<TData extends object, TResp>(
   }
 
   const validator = makeValidator(cb, options)
+
+  async function handleSubmit(o?: SubmitOptions<TData, TResp>): Promise<void> {
+    if (form.processing)
+      return
+
+    const data = form.data()
+    try {
+      const onBefore = o?.onBefore ? await o.onBefore(data) : true
+
+      if (!onBefore)
+        return
+
+      if (o?.onStart)
+        await o.onStart(data)
+
+      const resp = await form.asyncSubmit({ headers: o?.headers })
+
+      if (o?.onSuccess)
+        await o.onSuccess(resp, data)
+    }
+    catch (error) {
+      const err = error instanceof Error ? error : new Error('Invalid form')
+
+      if (o?.onError)
+        await o.onError(err, data)
+    }
+  }
 
   const form = reactive<TData & Form<TData, TResp>>({
     ...getInitialData(),
@@ -55,31 +82,8 @@ export function useForm<TData extends object, TResp>(
       form.validatedKeys = []
       return form
     },
-    async submit(o) {
-      if (form.processing)
-        return
-
-      const data = form.data()
-      try {
-        const onBefore = o?.onBefore ? await o.onBefore(data) : true
-
-        if (!onBefore)
-          return
-
-        if (o?.onStart)
-          await o.onStart(data)
-
-        const resp = await form.asyncSubmit({ headers: o?.headers })
-
-        if (o?.onSuccess)
-          await o.onSuccess(resp as TResp, data)
-      }
-      catch (error) {
-        const err = error instanceof Error ? error : new Error('Invalid form')
-
-        if (o?.onError)
-          await o.onError(err, data)
-      }
+    submit(o) {
+      void handleSubmit(o)
     },
     async asyncSubmit(o) {
       if (form.processing)

@@ -1,7 +1,7 @@
 import type { ValidationErrorParser, ValidationErrorsData } from './core'
 import type { NestedKeyOf, ErrorStatusCode } from './utils'
 
-interface SubmitOptions<TData extends object, TResp> {
+export interface SubmitOptions<TData extends object, TResp> {
   headers?: Headers
   /**
    * callback triggered when error is captured
@@ -31,7 +31,7 @@ interface SubmitOptions<TData extends object, TResp> {
   onSuccess?: (resp: TResp, data: TData) => Promise<void> | void
 }
 
-interface AsyncSubmitOptions {
+export interface AsyncSubmitOptions {
   headers?: Headers
 }
 
@@ -46,7 +46,7 @@ export interface Form<TData extends object, Tresp> {
   disabled: () => boolean
   validate: (...keys: NestedKeyOf<TData>[]) => TData & Form<TData, Tresp>
   reset: () => TData & Form<TData, Tresp>
-  submit: (options?: SubmitOptions<TData, Tresp>) => Promise<void>
+  submit: (options?: SubmitOptions<TData, Tresp>) => void
   asyncSubmit: (options?: AsyncSubmitOptions) => Promise<Tresp>
   valid: (...keys: (NestedKeyOf<TData>)[]) => boolean
   invalid: (...keys: (NestedKeyOf<TData>)[]) => boolean

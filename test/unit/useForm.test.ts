@@ -459,19 +459,22 @@ describe ('test useForm composable', () => {
 
     const form = useForm(initialData, cb)
 
-    await form.submit({
-      onBefore: () => {
-        hook.push('onBefore')
-        return true
-      },
-      onStart: () => {
-        hook.push('onStart')
-        return Promise.resolve()
-      },
-      onSuccess: () => {
-        hook.push('onSuccess')
-        return Promise.resolve()
-      },
+    await new Promise<void>((resolve) => {
+      form.submit({
+        onBefore: () => {
+          hook.push('onBefore')
+          return true
+        },
+        onStart: () => {
+          hook.push('onStart')
+          return Promise.resolve()
+        },
+        onSuccess: () => {
+          hook.push('onSuccess')
+          resolve()
+          return Promise.resolve()
+        },
+      })
     })
 
     expect(hook).toEqual(['onBefore', 'onStart', 'cb', 'onSuccess'])
@@ -491,19 +494,22 @@ describe ('test useForm composable', () => {
 
     const form = useForm(initialData, cb)
 
-    await form.submit({
-      onBefore: () => {
-        hook.push('onBefore')
-        return true
-      },
-      onStart: () => {
-        hook.push('onStart')
-        return Promise.resolve()
-      },
-      onError: () => {
-        hook.push('onError')
-        return Promise.resolve()
-      },
+    await new Promise<void>((resolve) => {
+      form.submit({
+        onBefore: () => {
+          hook.push('onBefore')
+          return true
+        },
+        onStart: () => {
+          hook.push('onStart')
+          return Promise.resolve()
+        },
+        onError: () => {
+          hook.push('onError')
+          resolve()
+          return Promise.resolve()
+        },
+      })
     })
 
     expect(hook).toEqual(['onBefore', 'onStart', 'cb', 'onError'])
@@ -519,13 +525,13 @@ describe ('test useForm composable', () => {
     }
 
     const error = new Error('error') as Error & { response: Response }
-    error.response = new Response(null, { status })
-
     const cb = () => Promise.reject(error)
-
     const form = useForm(initialData, cb)
 
-    await form.submit()
+    error.response = new Response(null, { status })
+
+    form.submit()
+    await vi.runOnlyPendingTimersAsync()
 
     expect(form.error).toBeInstanceOf(Error)
     expect(form.error?.message).toBe(message)
@@ -557,7 +563,8 @@ describe ('test useForm composable', () => {
 
     error.response = new Response(null, { status })
 
-    await form.submit()
+    form.submit()
+    await vi.runOnlyPendingTimersAsync()
 
     expect(form.error).toBeInstanceOf(Error)
     expect(form.error?.message).toBe(message)
@@ -568,25 +575,27 @@ describe ('test useForm composable', () => {
       name: 'John Doe',
       email: 'john@email.it',
     }
-    let step = 0
+
     const steps = {
+      onBefore: -1,
       onStart: -1,
       clientValidation: -1,
-      onBefore: -1,
-      onFinish: -1,
       cb: -1,
+      onFinish: -1,
     }
 
-    function setStep(name: keyof typeof steps) {
-      steps[name] = step++
+    let currentStep = 0
+    const setStep = (key: keyof typeof steps) => {
+      steps[key] = currentStep++
     }
-    const cb = () => {
-      setStep('cb')
-      return Promise.resolve()
-    }
+
     const clientValidation = () => {
       setStep('clientValidation')
       return Promise.resolve()
+    }
+    const cb = () => {
+      setStep('cb')
+      return Promise.resolve('ok')
     }
 
     const onBefore = () => {
@@ -603,10 +612,15 @@ describe ('test useForm composable', () => {
     }
     const form = useForm(initialData, cb, { clientValidation })
 
-    await form.submit({
-      onBefore,
-      onStart,
-      onSuccess,
+    await new Promise<void>((resolve) => {
+      form.submit({
+        onBefore,
+        onStart,
+        onSuccess: async (resp, data) => {
+          await onSuccess()
+          resolve()
+        },
+      })
     })
 
     expect(steps.onBefore).toBe(0)
