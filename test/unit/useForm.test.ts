@@ -616,7 +616,7 @@ describe ('test useForm composable', () => {
       form.submit({
         onBefore,
         onStart,
-        onSuccess: async (resp, data) => {
+        onSuccess: async (_resp, _data) => {
           await onSuccess()
           resolve()
         },
