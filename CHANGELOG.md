@@ -1,3 +1,11 @@
+# [0.2.0](https://github.com/sot1986/nuxt-precognition/compare/v0.1.7...v0.2.0) (2026-07-25)
+
+
+### Features
+
+* **useForm:** add asyncSubmit method ([8bd2d2f](https://github.com/sot1986/nuxt-precognition/commit/8bd2d2ffdb5a198daa9f9e2340459b34a3afda97))
+* **useForm:** add asyncSubmit method and bump version to 0.2.0 ([4069d26](https://github.com/sot1986/nuxt-precognition/commit/4069d26493408f0bef22eb5c1f2c887c80e8d59a))
+
 # Changelog
 
 
@@ -116,4 +124,3 @@
 [compare changes](https://github.com/sot1986/nuxt-precognition/compare/v0.0.2...v0.0.2)
 
 ## v0.0.2
-
