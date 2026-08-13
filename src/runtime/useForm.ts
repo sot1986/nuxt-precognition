@@ -79,6 +79,7 @@ export function useForm<TData extends object, TResp>(
       return form
     },
     reset() {
+      validator.reset()
       Object.assign(this, getInitialData())
       form.error = null
       form.errors = {}

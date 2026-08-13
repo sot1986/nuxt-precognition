@@ -12,6 +12,7 @@ export function makeValidator<TData extends object, TResp>(
   options?: UseFormOptions<TData, TResp>,
 ): {
     validate: DebouncedFuncLeading<(form: Form<TData, TResp>, ...keys: NestedKeyOf<TData>[]) => Promise<void>>
+    reset: () => void
     errorParsers: ValidationErrorParser<TResp>[]
     responseParsers: ((resp: TResp) => unknown)[]
     setValidateFiles: (value: boolean) => void
@@ -33,8 +34,14 @@ export function makeValidator<TData extends object, TResp>(
   const responseParsers = errorParsers.filter(p => typeof p === 'object').map(p => p.responseParser)
 
   const statusHandlers = { ...$precognition.statusHandlers, ...options?.statusHandlers }
-  const validate = debounce(
-    async function (form: TData & Form<TData, TResp>, ...keys: NestedKeyOf<TData>[]) {
+
+  const pendingKeys = new Set<NestedKeyOf<TData>>()
+
+  const debouncedValidate = debounce(
+    async function (form: TData & Form<TData, TResp>) {
+      const keys = Array.from(pendingKeys)
+      pendingKeys.clear()
+
       const headers = requestPrecognitiveHeaders(validateOptions.validationHeaders, keys)
       const data = form.data()
       try {
@@ -98,12 +105,31 @@ export function makeValidator<TData extends object, TResp>(
     { leading: true, trailing: true },
   )
 
+  const validate: DebouncedFuncLeading<(form: Form<TData, TResp>, ...keys: NestedKeyOf<TData>[]) => Promise<void>> = Object.assign(
+    (form: Form<TData, TResp>, ...keys: NestedKeyOf<TData>[]) => {
+      keys.forEach(k => pendingKeys.add(k))
+      return debouncedValidate(form as TData & Form<TData, TResp>)
+    },
+    {
+      cancel: () => {
+        pendingKeys.clear()
+        debouncedValidate.cancel()
+      },
+      flush: () => debouncedValidate.flush(),
+    },
+  )
+
+  function reset() {
+    validate.cancel()
+  }
+
   function setValidateFiles(value: boolean) {
     validateOptions.validateFiles = value
   }
 
   return {
     validate,
+    reset,
     errorParsers,
     responseParsers,
     statusHandlers,

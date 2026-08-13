@@ -157,6 +157,34 @@ describe ('test useForm composable', () => {
     expect(form.avatar).toBe(null)
   })
 
+  it('cancels pending debounced validations when reset is called', async () => {
+    let cbCalled = 0
+    const form = useForm(initialData, () => {
+      cbCalled++
+      return Promise.resolve()
+    }, { validationTimeout: 1000 })
+
+    // Call 1: Runs immediately (leading edge)
+    form.validate('name')
+    await vi.advanceTimersByTimeAsync(100)
+    expect(cbCalled).toBe(1)
+
+    // Trigger validation that gets queued for trailing debounce
+    form.name = 'Changed Name'
+    form.validate('name')
+
+    // Reset the form immediately while validation is pending
+    form.reset()
+
+    // Advance timer past debounce threshold
+    await vi.advanceTimersByTimeAsync(1000)
+
+    // Expected behavior: trailing validation was cancelled, so cb was NOT called again
+    // Actual current behavior: trailing validation fires after reset, calling cb again (cbCalled === 2) and adding 'name' to validatedKeys
+    expect(cbCalled).toBe(1)
+    expect(form.validatedKeys).toEqual([])
+  })
+
   it('validate method calls cb with the precognitive headers headers', async () => {
     const initialData: { name: string, age: number, skills: string[], avatar: null | Blob } = {
       name: 'John Doe',
@@ -222,6 +250,37 @@ describe ('test useForm composable', () => {
     form.validate('skills')
     await vi.runOnlyPendingTimersAsync()
     expect(expects.count).toBe(3)
+  })
+
+  it('queues multiple keys when debouncing validation calls', async () => {
+    const initialData = {
+      name: 'John Doe',
+      email: 'john@email.it',
+      age: 30,
+    }
+    const requestedHeaders: string[] = []
+
+    async function cb(_data: typeof initialData, headers: Record<string, string>) {
+      if (headers['precognition-validate-only'])
+        requestedHeaders.push(headers['precognition-validate-only'])
+      return Promise.resolve()
+    }
+
+    const form = useForm(initialData, cb, { validationTimeout: 1000 })
+
+    // Call 1: Runs immediately (leading edge)
+    form.validate('name')
+    await vi.advanceTimersByTimeAsync(100)
+
+    // Calls 2 & 3: Occur rapidly within debounce timeout
+    form.validate('email')
+    form.validate('age')
+
+    // Advance timer past the 1000ms debounce threshold
+    await vi.advanceTimersByTimeAsync(1000)
+
+    // Expected behavior: both 'email' and 'age' should be validated on the trailing call.
+    expect(requestedHeaders).toEqual(['name', 'email,age'])
   })
 
   it('can validate all fields', async () => {
