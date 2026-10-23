@@ -1,3 +1,10 @@
+## [0.3.1](https://github.com/sot1986/nuxt-precognition/compare/v0.3.0...v0.3.1) (2026-08-13)
+
+
+### Bug Fixes
+
+* **validator:** queue validation keys and cancel pending requests on reset ([bbeee24](https://github.com/sot1986/nuxt-precognition/commit/bbeee2454e60728d9ec44652918aded00c2e2898))
+
 # [0.3.0](https://github.com/sot1986/nuxt-precognition/compare/v0.2.0...v0.3.0) (2026-07-25)
 
 
