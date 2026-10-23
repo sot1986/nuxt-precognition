@@ -36,9 +36,11 @@ export function makeValidator<TData extends object, TResp>(
   const statusHandlers = { ...$precognition.statusHandlers, ...options?.statusHandlers }
 
   const pendingKeys = new Set<NestedKeyOf<TData>>()
+  let latestValidationId = 0
 
   const debouncedValidate = debounce(
     async function (form: TData & Form<TData, TResp>) {
+      const validationId = ++latestValidationId
       const keys = Array.from(pendingKeys)
       pendingKeys.clear()
 
@@ -54,9 +56,13 @@ export function makeValidator<TData extends object, TResp>(
 
         const onValidationStart = validateOptions.onValidationStart ?? (() => Promise.resolve())
         await onValidationStart(data)
+        if (validationId !== latestValidationId)
+          return
 
         const clientValidation = validateOptions?.clientValidation ?? (() => Promise.resolve())
         await clientValidation(data)
+        if (validationId !== latestValidationId)
+          return
 
         const backendValidation = validateOptions.backendValidation
           ? cb
@@ -65,6 +71,9 @@ export function makeValidator<TData extends object, TResp>(
           (validateOptions.validateFiles) ? data : withoutFiles(data),
           headers,
         )
+        if (validationId !== latestValidationId)
+          return
+
         if (responseParsers.length)
           responseParsers.forEach(p => typeof resp === 'undefined' ? undefined : p(resp))
 
@@ -74,6 +83,9 @@ export function makeValidator<TData extends object, TResp>(
         return onSuccess(data)
       }
       catch (error) {
+        if (validationId !== latestValidationId)
+          return
+
         const err = error instanceof Error
           ? error
           : new Error('An error occurred while validating the form. Please try again.')
@@ -98,7 +110,8 @@ export function makeValidator<TData extends object, TResp>(
         return onError(err, data, keys)
       }
       finally {
-        form.validating = false
+        if (validationId === latestValidationId)
+          form.validating = false
       }
     },
     validateOptions.validationTimeout,
@@ -112,6 +125,7 @@ export function makeValidator<TData extends object, TResp>(
     },
     {
       cancel: () => {
+        latestValidationId++
         pendingKeys.clear()
         debouncedValidate.cancel()
       },
@@ -120,6 +134,7 @@ export function makeValidator<TData extends object, TResp>(
   )
 
   function reset() {
+    latestValidationId++
     validate.cancel()
   }
 

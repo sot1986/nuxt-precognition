@@ -72,9 +72,6 @@ export function useForm<TData extends object, TResp>(
     errors: {},
     error: null,
     validate(...keys: NestedKeyOf<TData>[]) {
-      if (form.validating)
-        return form
-
       validator.validate(form, ...keys)
       return form
     },

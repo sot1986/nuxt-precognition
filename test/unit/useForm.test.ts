@@ -836,6 +836,89 @@ describe ('test useForm composable', () => {
     expect(form.errors.name).toBeUndefined()
   })
 
+  it('does not ignore validate() calls while already validating', async () => {
+    let resolveFirstValidation: () => void
+    const firstValidationPromise = new Promise<void>((resolve) => {
+      resolveFirstValidation = resolve
+    })
+
+    let callCount = 0
+    const validatedKeysPassed: string[][] = []
+
+    const form = useForm({ name: '', email: '' }, (_data, headers) => {
+      callCount++
+      const keys = headers['precognition-validate-only']?.split(',') ?? []
+      validatedKeysPassed.push(keys)
+      if (callCount === 1) {
+        return firstValidationPromise
+      }
+      return Promise.resolve()
+    })
+
+    // Trigger first validation (starts immediately due to leading: true)
+    form.validate('name')
+    await vi.advanceTimersByTimeAsync(50)
+    expect(form.validating).toBe(true)
+    expect(callCount).toBe(1)
+
+    // Trigger second validation while first is still in flight (form.validating is true)
+    form.validate('email')
+
+    // Resolve first validation
+    resolveFirstValidation!()
+    await vi.advanceTimersByTimeAsync(1500)
+
+    // Both validations were executed, email was not dropped
+    expect(callCount).toBe(2)
+    expect(validatedKeysPassed).toEqual([['name'], ['email']])
+    expect(form.validating).toBe(false)
+    expect(form.validatedKeys).toEqual(['name', 'email'])
+  })
+
+  it('discards stale validation responses if a newer validation finishes first', async () => {
+    let rejectFirst: (err: unknown) => void
+    const firstPromise = new Promise((_resolve, reject) => {
+      rejectFirst = reject
+    })
+
+    let callCount = 0
+    const form = useForm({ name: 'initial' }, () => {
+      callCount++
+      if (callCount === 1) {
+        // Slow first validation that fails
+        return firstPromise
+      }
+      // Fast second validation that succeeds
+      return Promise.resolve()
+    })
+
+    // Call 1
+    form.validate('name')
+    await vi.advanceTimersByTimeAsync(50)
+    expect(callCount).toBe(1)
+    expect(form.validating).toBe(true)
+
+    // Advance past debounce and trigger Call 2
+    await vi.advanceTimersByTimeAsync(1500)
+    form.name = 'updated'
+    form.validate('name')
+    await vi.advanceTimersByTimeAsync(1500)
+    expect(callCount).toBe(2)
+
+    // Second validation succeeded, form has no errors
+    expect(form.errors.name).toBeUndefined()
+    expect(form.validating).toBe(false)
+
+    // Now the slow first validation rejects with an error
+    const firstError = makeNuxtPrecognitiveError({ name: 'Name is already taken.' })
+    rejectFirst!(firstError)
+    await vi.runOnlyPendingTimersAsync()
+
+    // The stale error should be discarded and not overwrite the success
+    expect(form.errors.name).toBeUndefined()
+    expect(form.validating).toBe(false)
+  })
+
   describe('asyncSubmit', () => {
     it('returns response on success', async () => {
       const form = useForm({ name: 'John' }, (_data, headers) => {
