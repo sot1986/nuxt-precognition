@@ -1,3 +1,10 @@
+## [0.3.2](https://github.com/sot1986/nuxt-precognition/compare/v0.3.1...v0.3.2) (2026-10-23)
+
+
+### Bug Fixes
+
+* **validator:** prevent dropping validations and discard stale responses ([e9c84ba](https://github.com/sot1986/nuxt-precognition/commit/e9c84ba95de130b1e6a39a1f2c89dbd096ce8de4))
+
 ## [0.3.1](https://github.com/sot1986/nuxt-precognition/compare/v0.3.0...v0.3.1) (2026-08-13)
 
 
