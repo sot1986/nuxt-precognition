@@ -107,6 +107,7 @@ export function useForm<TData extends object, TResp>(
         if (validator.responseParsers.length)
           validator.responseParsers.forEach(p => p(resp))
 
+        form.forgetErrors()
         return resp
       }
       catch (error) {
