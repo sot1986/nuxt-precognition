@@ -1,3 +1,15 @@
+# [0.4.0](https://github.com/sot1986/nuxt-precognition/compare/v0.3.2...v0.4.0) (2026-11-23)
+
+
+### Bug Fixes
+
+* **useForm:** clear form errors on successful submit ([281ffc5](https://github.com/sot1986/nuxt-precognition/commit/281ffc540ada68c4905a79c473943772edf12081))
+
+
+### Features
+
+* **server:** support Nuxt 4.6 agnostic server interface ([fc57a54](https://github.com/sot1986/nuxt-precognition/commit/fc57a545dcf54cd12451d0888f7a2e49b15e5b0f))
+
 ## [0.3.2](https://github.com/sot1986/nuxt-precognition/compare/v0.3.1...v0.3.2) (2026-10-23)
 
 
