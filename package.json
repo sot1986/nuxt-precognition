@@ -23,13 +23,11 @@
   ],
   "exports": {
     ".": {
-      "types": "./dist/types.d.ts",
-      "import": "./dist/module.mjs",
-      "require": "./dist/module.cjs"
+      "types": "./dist/types.d.mts",
+      "import": "./dist/module.mjs"
     }
   },
-  "main": "./dist/module.cjs",
-  "types": "./dist/types.d.ts",
+  "main": "./dist/module.mjs",
   "publishConfig": {
     "access": "public"
   },
@@ -50,37 +48,37 @@
     "semantic-release": "semantic-release"
   },
   "dependencies": {
-    "@nuxt/kit": "^3.11.2",
-    "defu": "^6.1.4",
-    "lodash-es": "^4.17.21"
+    "@nuxt/kit": "^4.6.4",
+    "defu": "^6.1.7",
+    "lodash-es": "^4.18.1"
   },
   "devDependencies": {
     "@nuxt/devtools": "latest",
-    "@nuxt/eslint-config": "^0.3.12",
-    "@nuxt/module-builder": "^0.8.3",
-    "@nuxt/schema": "^3.11.2",
-    "@nuxt/test-utils": "^3.12.1",
+    "@nuxt/eslint-config": "^0.3.13",
+    "@nuxt/module-builder": "^1.0.4",
+    "@nuxt/schema": "^4.6.4",
+    "@nuxt/test-utils": "^3.23.0",
     "@semantic-release/changelog": "^7.0.0",
     "@semantic-release/git": "^11.0.1",
-    "@semantic-release/github": "^12.0.9",
-    "@tailwindcss/forms": "^0.5.7",
-    "@types/lodash": "^4.17.21",
+    "@semantic-release/github": "^12.0.11",
+    "@tailwindcss/forms": "^0.5.11",
+    "@types/lodash": "^4.17.27",
     "@types/lodash-es": "^4.17.12",
-    "@types/node": "^20.12.11",
-    "autoprefixer": "^10.4.19",
-    "changelogen": "^0.5.5",
-    "eslint": "^8.57.0",
-    "h3": "^1.11.1",
-    "nuxt": "^3.11.2",
-    "playwright-core": "^1.44.0",
-    "postcss": "^8.4.38",
-    "semantic-release": "^25.0.8",
-    "tailwindcss": "^3.4.3",
-    "typescript": "^5.4.5",
-    "vitest": "^1.6.0",
-    "vue": "^3.5.22",
-    "vue-tsc": "^2.0.17",
-    "zod": "^4.1.11"
+    "@types/node": "^20.19.43",
+    "autoprefixer": "^10.7.0",
+    "changelogen": "^0.5.7",
+    "eslint": "^8.57.1",
+    "h3": "^1.15.11",
+    "nuxt": "^4.6.4",
+    "playwright-core": "^1.65.1",
+    "postcss": "^8.5.33",
+    "semantic-release": "^25.0.9",
+    "tailwindcss": "^3.4.19",
+    "typescript": "^5.9.3",
+    "vitest": "^1.6.1",
+    "vue": "^3.5.46",
+    "vue-tsc": "^2.2.12",
+    "zod": "^4.6.7"
   },
   "packageManager": "pnpm@9.12.3+sha512.cce0f9de9c5a7c95bef944169cc5dfe8741abfb145078c0d508b868056848a87c81e626246cb60967cbd7fd29a6c062ef73ff840d96b3c86c40ac92cf4a813ee"
 }

@@ -1,11 +1,16 @@
 import { debounce } from 'lodash-es'
-import type { DebouncedFuncLeading } from 'lodash'
 import defu from 'defu'
 import type { NestedKeyOf, ErrorStatusCode } from './types/utils'
 import type { ValidationErrorParser } from './types/core'
 import type { ClientStatusHandlers, Form, UseFormOptions } from './types/form'
 import { isFile, requestPrecognitiveHeaders, resolveValidationErrorData, makeLaravelValidationErrorParser, makeNuxtValidationErrorParser, hasResponse } from './core'
 import { useNuxtApp, useRuntimeConfig } from '#imports'
+
+export interface DebouncedFuncLeading<T extends (...args: never[]) => unknown> {
+  (...args: Parameters<T>): ReturnType<T>
+  cancel: () => void
+  flush: () => ReturnType<T>
+}
 
 export function makeValidator<TData extends object, TResp>(
   cb: (data: TData, precognitiveHeaders: Headers) => Promise<TResp>,

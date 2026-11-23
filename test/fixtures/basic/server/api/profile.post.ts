@@ -19,15 +19,15 @@ export default definePrecognitiveEventHandler({
     (error) => {
       if (error instanceof ZodError) {
         const errors: Record<string, string[]> = {}
-        error.errors.forEach((e) => {
+        error.issues.forEach((e) => {
           const key = e.path.join('.')
-          if (key in errors) {
+          if (errors[key]) {
             errors[key].push(e.message)
             return
           }
           errors[key] = [e.message]
         })
-        const message = error.errors.at(0)?.message ?? 'Validation error'
+        const message = error.issues.at(0)?.message ?? 'Validation error'
         return { errors, message }
       }
     },

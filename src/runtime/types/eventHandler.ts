@@ -1,13 +1,14 @@
-import type { H3Event, EventHandlerRequest } from 'h3'
 import type { ErrorStatusCode } from './utils'
 import type { ValidationErrorParser } from './core'
 
-export type ServerStatusHandlers = Partial<Record<ErrorStatusCode, <TRequest extends EventHandlerRequest>(error: Error, event: H3Event<TRequest>) => void | Promise<void>>>
+export type ServerStatusHandler<TEvent = unknown> = (error: Error, event: TEvent) => void | Promise<void>
 
-export interface PrecognitionEventContext {
+export type ServerStatusHandlers<TEvent = unknown> = Partial<Record<ErrorStatusCode, ServerStatusHandler<TEvent>>>
+
+export interface PrecognitionEventContext<TEvent = unknown> {
   $precognition: {
     errorParsers: ValidationErrorParser[]
-    statusHandlers: ServerStatusHandlers
+    statusHandlers: ServerStatusHandlers<TEvent>
   }
   precognitive: boolean
 }
